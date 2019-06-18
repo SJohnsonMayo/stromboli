@@ -1,12 +1,4 @@
-load_package <- function(package.names = c("MASS", "ggbiplot", "ape", "vegan",
-                                           "pscl", "glmmADMB", "aod", "nlme", "MiRKAT", "matrixStats", "gplots",
-                                           "scales", "ggplot2", "GUniFrac", "rpart", "qvalue", "DESeq2", "lme4",
-                                           "phangorn", "phyloseq", "RColorBrewer", "squash", "rhdf5", "biom",
-                                           "reshape", "randomForest", "Boruta", "ade4", "Daim", "rlocal")) {
-  for (package.name in package.names) {
-    require(package.name, character.only = T)
-  }
-}
+
 getPermuteMatrixBlock <- function(permutations, strata) {
   strata <- factor(strata)
   strata <- factor(as.numeric(strata))
