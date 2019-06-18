@@ -1,0 +1,1093 @@
+read_hdf5_biom <- function(file_input){
+  x = h5read(file_input,"/",read.attributes = TRUE)
+  data = generate_matrix(x)
+  rows = generate_metadata(x$observation)
+  columns = generate_metadata(x$sample)
+  shape = c(length(data),length(data[[1]])) # dim(data)
+
+  # Experimental -- need to actually load these from file
+  id = attr(x,"id")
+  vs = attr(x,"format-version")
+  format = sprintf("Biological Observation Matrix %s.%s",vs[1],vs[2])
+  format_url = attr(x,"format-url")
+  type = "OTU table"
+  #type=attr(x,"type")
+  generated_by = attr(x,"generated-by")
+  date = attr(x,"creation-date")
+  matrix_type = "dense"
+  matrix_element_type = "int"
+
+  namedList(id,format,format_url,type,generated_by,date,matrix_type,matrix_element_type,
+            rows,columns,shape,data)
+}
+
+uniquefy_taxa_names <- function (data.obj) {
+  for (level in names(data.obj$abund.list)) {
+    obj <- data.obj$abund.list[[level]]
+    #		rownames(obj) <- gsub('unclassified', paste0('Unclassified', substr(level, 1, 1)), rownames(obj))
+    #		rownames(obj) <- gsub('unassigned', paste0('Unclassified', substr(level, 1, 1)), rownames(obj))
+    rownames(obj) <- paste0(rownames(obj), substr(level, 1, 1))
+    data.obj$abund.list[[level]] <- obj
+  }
+  #	suffix <- c('K', 'P', 'C', 'O', 'F', 'G', 'S')
+  #	for (i in 1:ncol(data.obj$otu.name)) {
+  #		data.obj$otu.name[, i] <- paste0(data.obj$otu.name[, i], suffix[i])
+  #	}
+  return(data.obj)
+}
+
+# Rev: 2016_09_22 Add load.map
+# Rev: 2016_12_12 Reogranize rarefy, normalize, winsorize
+load_data <- function (otu.file, map.file, tree.file=NULL,  load.map=TRUE, parseFunction=parse_taxonomy_greengenes, version='Old',
+                       species=TRUE, filter.no=1, rep.seq=NULL,
+                       rff=FALSE, dep=NULL,
+                       norm='TSS', level='OTU', intersect.no=4,
+                       winsor=FALSE, winsor.qt=0.97,
+                       ko.file=NULL, cog.file=NULL, ko.ann.file=NULL,
+                       meta.sep='\t', quote="\"", comment="",
+                       read.gg=FALSE,  seed=1234, ...) {
+  # ko and cog file are not rarefied
+  # filter.no: filter the OTUs with read support less than filter.no (default is filtering singleton); singleton will not be filtered after rarefaction
+  # winsorization and GMPR should be further studied. Current default is false and GMPR is on the genus level
+  act.seq <- NULL
+  set.seed(seed)
+  if (load.map == TRUE) {
+    cat("Load meta file...\n")
+    if (grepl("csv$", map.file)) {
+      meta.dat <- read.csv(map.file, header=T, check.names=F, row.names=1, comment=comment, quote=quote, ...)
+    } else {
+      meta.dat <- read.table(map.file, header=T, check.names=F, row.names=1, comment=comment, sep=meta.sep, quote=quote, ...)
+    }
+  } else {
+    meta.dat <- NULL
+  }
+
+  # Load Tree
+  if (!is.null(tree.file)) {
+    cat("Load tree file ...\n")
+    if (read.gg == F) {
+      tree.12 <- read.tree(tree.file)
+    } else {
+      tree.12 <- read_tree_greengenes(tree.file)
+    }
+
+    if (is.rooted(tree.12) == F) {
+      tree.12 <- midpoint(tree.12)
+    }
+
+  } else {
+    tree.12 <- NULL
+  }
+
+  cat("Load OTU file...\n")  # Rewrite load new biom file, rev:2016-06-20
+  if (version != 'New') {
+    biom.obj <-  import_biom(otu.file, parseFunction = parseFunction)
+
+    otu.tab.12 <- otu_table(biom.obj)@.Data
+    otu.ind <- rowSums(otu.tab.12) > filter.no  # change otu.tab.12 != 0, rev:2016-06-20
+    otu.tab.12 <- otu.tab.12[otu.ind, ]
+    # OTU names
+    otu.name.full <- as.matrix(biom.obj@tax_table[, c('Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species')])
+    otu.name.full <- otu.name.full[otu.ind, ]
+
+    otu.name.12 <- otu.name.full[, c('Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species')]
+    otu.name.12[is.na(otu.name.12)] <- 'unclassified'
+    otu.name.12 <- otu.name.12@.Data
+
+    otu.name.12[, ] <- gsub('\\[', '', otu.name.12)
+    otu.name.12[, ] <- gsub('\\]', '', otu.name.12)
+
+    otu.name.12[, ] <- gsub('_unclassified', '', otu.name.12)
+
+    otu.name.full <- otu.name.full@.Data
+  } else {
+    temp <-  read_hdf5_biom(otu.file)
+    #		otu.file <- paste0(otu.file, '.old')
+    #		write_biom(temp, otu.file)
+    #		biom.obj <- import_biom(otu.file, parseFunction = parseFunction)
+    otu.tab.12 <- matrix(unlist(temp$data), byrow=T, nrow=temp$shape[1], ncol=temp$shape[2])
+
+    otu.ids <- sapply(temp$rows, function(x) x[['id']])
+    sam.ids <- sapply(temp$columns, function(x) x[['id']])
+
+    #		res <- t(sapply(temp$rows, function(i) {
+    #					i$metadata$taxonomy
+    #				}))
+    #		rownames(res) <- otu.ids
+
+    # From phyloseq: to be double checked!! Checked!
+    if (all(sapply(sapply(temp$rows, function(i) {
+      i$metadata
+    }), is.null))) {
+      otu.name.full <- NULL
+    } else {
+      taxlist = lapply(temp$rows, function(i) {
+        parseFunction(i$metadata$taxonomy)
+      })
+      names(taxlist) = sapply(temp$rows, function(i) {
+        i$id
+      })
+      otu.name.full = build_tax_table(taxlist)
+    }
+
+    # Rev: 2017_04_18
+    otu.name.full <- otu.name.full@.Data
+
+    rownames(otu.tab.12) <- otu.ids
+    colnames(otu.tab.12) <- sam.ids
+
+    otu.ind <- rowSums(otu.tab.12) > filter.no  # change otu.tab.12 != 0, rev:2016-06-20
+    otu.tab.12 <- otu.tab.12[otu.ind, ]
+    otu.name.full <- otu.name.full[otu.ind, ]
+    otu.name.12 <- otu.name.full[, c('Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species')]
+    otu.name.12[is.na(otu.name.12)] <- 'unclassified'
+    otu.name.12[, ] <- gsub('\\[', '', otu.name.12)
+    otu.name.12[, ] <- gsub('\\]', '', otu.name.12)
+  }
+
+  if (rff == TRUE) {
+    cat('Rarefaction ...\n')
+    if (is.null(dep)) {
+      otu.tab.12 <- t(Rarefy(t(otu.tab.12))$otu.tab.rff)
+    } else {
+      otu.tab.12 <- t(Rarefy(t(otu.tab.12), dep)$otu.tab.rff)
+    }
+    dep <- colSums(otu.tab.12)[1]
+    cat("Depth ", dep, '\n')
+    # Remove empty OTUs
+    otu.ind <- rowSums(otu.tab.12) > 0  # rev:2016-06-28
+    otu.tab.12 <- otu.tab.12[otu.ind, ]
+    otu.name.12 <- otu.name.12[otu.ind, ]
+    otu.name.full <- otu.name.full[otu.ind, ]
+    act.seq <- paste0(act.seq, 'R')
+  } else {
+    rff <- FALSE
+    dep <- NULL
+  }
+
+  # Load mapping file
+  if (load.map == TRUE) {
+    samIDs <- intersect(rownames(meta.dat), colnames(otu.tab.12))
+    if (length(samIDs) == 0) {
+      stop('Sample names in the meta file and biom are completely different?\n')
+    }
+    if (length(samIDs) < length(colnames(otu.tab.12)) | length(samIDs) < length(rownames(meta.dat))) {
+      warning('Sample names in the meta file and biom differ! May be due to rarefaction?\n')
+    }
+    meta.dat <- meta.dat[samIDs, ]
+    otu.tab.12 <- otu.tab.12[, samIDs]
+  } else {
+    samIDs <- colnames(otu.tab.12)
+  }
+
+  # Create abundance list
+  cat("Create taxa abundance list ...\n")
+  abund.list.12 <- list()
+  hierachs <- c('Phylum', 'Class', 'Order', 'Family', 'Genus')
+  for (hierach in hierachs) {
+    if (hierach != 'Phylum') {
+      single.names <- otu.name.12[, hierach]
+      #	single.names[grepl('unclassified', single.names, ignore.case=T)] <- paste0('Unclassified',substr(hierach, 1, 1))
+      tax.family <- paste(otu.name.12[, 'Phylum'], single.names, sep=";")
+      tax.family[grepl('unclassified', tax.family, ignore.case=T)] <- paste0('Unclassified_', hierach)
+    } else {
+      tax.family <- otu.name.12[, 'Phylum']
+      tax.family[grepl('unclassified', tax.family, ignore.case=T)] <- 'Unclassified_Phylum'
+    }
+    family <- aggregate(otu.tab.12, by=list(tax.family), FUN=sum)
+    rownames(family) <- family[, 1]
+    family <- as.matrix(family[, -1])
+    abund.list.12[[hierach]] <- family
+  }
+
+  if (species) {
+    abund.list.12[['Species']] <- otu.tab.12
+    rownames(abund.list.12[['Species']]) <- paste0("OTU", rownames(otu.tab.12), ":", otu.name.12[, 'Phylum'], ";", otu.name.12[, 'Genus'])
+  }
+
+  cat('Normalize (size factor) ...\n')
+  if (rff == TRUE) {
+    cat('For rarefied data, the size factor for samples can still be different!\n')
+  }
+
+  if (level == 'OTU') {
+    data <- otu.tab.12
+  } else {
+    if (level %in% names(abund.list.12)) {
+      data <- abund.list.12[[level]]
+    } else {
+      data <- otu.tab.12
+      level <-'OTU'
+      warning('No or wrong level specified! OTU level will be used!\n')
+    }
+  }
+
+  if (norm == 'GMPR') {
+    sf <- GMPR(data, intersect.no=intersect.no)
+    warning('GMPR is only suitable for samples from the same body location!\n')
+    norm <- 'GMPR'
+    names(sf) <- colnames(data)
+    act.seq <- paste0(act.seq, 'N')
+  } else {
+    if (norm == 'TSS') {
+      sf <- colSums(data)
+      norm <- 'TSS'
+      act.seq <- paste0(act.seq, 'N')
+    } else {
+      warning('Normalization method not specified or unknown! TSS is used!\n')
+      sf <- colSums(data)
+      norm <- 'TSS'
+      act.seq <- paste0(act.seq, 'N')
+    }
+
+  }
+
+  if (winsor == TRUE) {
+    act.seq <- paste0(act.seq, 'W')
+    if (rff == TRUE) {
+      warning('Winsorization after rarefaction will make the data have different total numbers!\n')
+    }
+    cat('Winsorize ...\n')
+    if (is.null(winsor.qt)) {
+      winsor.qt <- 0.97
+    }
+    # Addressing the outlier (97% percent) or at least one outlier
+    abund.list.12 <- sapply(abund.list.12, function(genus) {
+      genus.p <- t(t(genus) / sf)
+      genus.p <- apply(genus.p, 1, function(x) {
+        cutoff <- quantile(x, winsor.qt)
+        x[x >= cutoff] <- cutoff
+        x
+      }
+      )
+      # column/row switch
+      genus.w <- t(round(genus.p * sf))
+    })
+    # OTU table
+    otu.tab.12.p <- t(t(otu.tab.12) / sf)
+    otu.tab.12.p <- apply(otu.tab.12.p, 1, function(x) {
+      cutoff <- quantile(x, winsor.qt)
+      x[x >= cutoff] <- cutoff
+      x
+    }
+    )
+    # column/row switch
+    otu.tab.12 <- t(round(otu.tab.12.p * sf))
+  } else {
+    winsor <- FALSE
+    winsor.qt <- NULL
+  }
+
+  # Rarefaction/Normalizing factors are not calculated for functional data
+  # Rev: 2017_01_19 the sample IDs for functional data are not ordered! Potential Danger! augment with NA
+  if (!is.null(ko.file)) {
+
+    cat("Load kegg file...\n")
+    ko <- read_biom(ko.file)
+    ko.dat <- as.matrix(biom_data(ko))
+
+    if (sum(!(samIDs %in% colnames(ko.dat))) != 0) {
+      missingIDs <- setdiff(samIDs, colnames(ko.dat))
+      aug.mat <- matrix(NA, nrow(ko.dat), length(missingIDs))
+      colnames(aug.mat) <- missingIDs
+      rownames(aug.mat) <- rownames(ko.dat)
+      ko.dat <- cbind(ko.dat, aug.mat)
+    }
+
+    ko.dat <- ko.dat[, samIDs]
+    # Rarefaction?
+
+    if (is.null(ko.ann.file)) {
+      # Old - back compatability
+      ko.ann <- observation_metadata(ko)
+      ko.ann <- cbind(KEGG_Pathways1=sapply(ko.ann, function(x) x['KEGG_Pathways1']),
+                      KEGG_Pathways2=sapply(ko.ann, function(x) x['KEGG_Pathways2']),
+                      KEGG_Pathways3=sapply(ko.ann, function(x) x['KEGG_Pathways3']))
+      rownames(ko.ann) <- rownames(ko.dat)
+      ko.ann[is.na(ko.ann)] <- 'Unclassified'
+
+      hierachs <- c("KEGG_Pathways1", "KEGG_Pathways2", "KEGG_Pathways3")
+      for (hierach in hierachs) {
+        tax.family <- ko.ann[, hierach]
+        family <- aggregate(ko.dat, by=list(tax.family), FUN=sum)
+        rownames(family) <- family[, 1]
+        family <- as.matrix(family[, -1])
+        abund.list.12[[hierach]] <- family
+      }
+    } else {
+      # New
+      load(ko.ann.file)
+      #
+      kos <- rownames(ko.dat)
+      abund.list.12[["KEGG_Pathways3"]] <- NULL
+      kos.id <- NULL
+      for (ko.item in names(kegg.map)) {
+        kos.common <- intersect(kos, kegg.map[[ko.item]])
+        if (length(kos.common) != 0) {
+          abund.list.12[["KEGG_Pathways3"]] <- rbind(abund.list.12[["KEGG_Pathways3"]], colSums(ko.dat[kos.common, , drop=F]))
+          kos.id <- c(kos.id, ko.item)
+        }
+      }
+      rownames(abund.list.12[["KEGG_Pathways3"]]) <- kos.id
+
+      abund.list.12[["KEGG_Metabolism"]] <- abund.list.12[["KEGG_Pathways3"]][intersect(kos.id, unlist(kegg.ann[['Metabolism']])), ]
+      rownames(abund.list.12[["KEGG_Metabolism"]]) <- paste0('M', rownames(abund.list.12[["KEGG_Metabolism"]]))
+
+      abund.list.12[["KEGG_Defense"]] <- NULL
+      kos.id <- NULL
+      for (ko.item in names(defense.map)) {
+        kos.common <- intersect(kos, defense.map[[ko.item]])
+        if (length(kos.common) != 0) {
+          abund.list.12[["KEGG_Defense"]] <- rbind(abund.list.12[["KEGG_Defense"]], colSums(ko.dat[kos.common, , drop=F]))
+          kos.id <- c(kos.id, ko.item)
+        }
+      }
+      rownames(abund.list.12[["KEGG_Defense"]]) <- kos.id
+
+      abund.list.12[["KEGG_Toxin"]] <- NULL
+      kos.id <- NULL
+      for (ko.item in names(toxin.map)) {
+        kos.common <- intersect(kos, toxin.map[[ko.item]])
+        if (length(kos.common) != 0) {
+          abund.list.12[["KEGG_Toxin"]] <- rbind(abund.list.12[["KEGG_Toxin"]], colSums(ko.dat[kos.common, , drop=F]))
+          kos.id <- c(kos.id, ko.item)
+        }
+      }
+      rownames(abund.list.12[["KEGG_Toxin"]]) <- kos.id
+    }
+
+  }
+
+  if (!is.null(cog.file)) {
+    cat("Load cog file...\n")
+    cog <- read_biom(cog.file)
+    cog.dat <- as.matrix(biom_data(cog))
+
+    if (sum(!(samIDs %in% colnames(cog.dat ))) != 0) {
+      missingIDs <- setdiff(samIDs, colnames(cog.dat ))
+      aug.mat <- matrix(NA, nrow(cog.dat), length(missingIDs))
+      colnames(aug.mat) <- missingIDs
+      rownames(aug.mat) <- rownames(cog.dat)
+      cog.dat  <- cbind(cog.dat, aug.mat)
+    }
+
+    cog.dat <- cog.dat[, samIDs]
+
+    # rarefaction?
+    cog.ann <- observation_metadata(cog)
+    hierachs <- c("COG_Category1", "COG_Category2")
+    for (hierach in hierachs) {
+      tax.family <- sapply(cog.ann, function(x) x[hierach])
+      family <- aggregate(cog.dat, by=list(tax.family), FUN=sum)
+      rownames(family) <- family[, 1]
+      family <- as.matrix(family[, -1])
+      abund.list.12[[hierach]] <- family
+    }
+  }
+
+  # Drop tree tips
+  if (!is.null(tree.12)) {
+    absent <- tree.12$tip.label[!(tree.12$tip.label %in% rownames(otu.tab.12))]
+    if (length(absent) != 0) {
+      tree.12 <- drop.tip(tree.12, absent)
+      warning("The tree has OTUs not in the OTU table!")
+    }
+  }
+
+  data.obj <- list(otu.tab=otu.tab.12, abund.list=abund.list.12, meta.dat=meta.dat, tree=tree.12,
+                   otu.name=otu.name.12, otu.name.full=otu.name.full,
+                   size.factor=sf, norm.method=norm, norm.level=level,
+                   winsor=winsor, winsor.qt=winsor.qt,
+                   rff=rff, rff.dep=dep, act.seq=act.seq,
+                   call=match.call())
+}
+
+# New: 2016_12_12, separate rarafaction and load data
+# Functional data will not be rarefied
+rarefy_data <- function (data.obj, dep=NULL) {
+  otu.tab.12 <- data.obj$otu.tab
+  otu.name.12 <- data.obj$otu.name
+  otu.name.full <- data.obj$otu.name.full
+  abund.list.12 <- data.obj$abund.list
+  siz.factor <- data.obj$size.factor
+  meta.dat <- data.obj$meta.dat
+
+  cat('Rarefaction ...\n')
+  if (is.null(dep)) {
+    otu.tab.12 <- t(Rarefy(t(otu.tab.12))$otu.tab.rff)
+  } else {
+    otu.tab.12 <- t(Rarefy(t(otu.tab.12), dep)$otu.tab.rff)
+  }
+  dep <- colSums(otu.tab.12)[1]
+  cat("Depth ", dep, '\n')
+  # Remove empty OTUs
+  otu.ind <- rowSums(otu.tab.12) > 0  # rev:2016-06-28
+  otu.tab.12 <- otu.tab.12[otu.ind, ]
+  otu.name.12 <- otu.name.12[otu.ind, ]
+  otu.name.full <- otu.name.full[otu.ind, ]
+
+  samIDs <- intersect(rownames(meta.dat), colnames(otu.tab.12))
+
+  if (length(samIDs) < nrow(meta.dat)) {
+    warning('Some samples were lost during rarefaction!\n')
+  }
+
+  meta.dat <- meta.dat[samIDs, ]
+  otu.tab.12 <- otu.tab.12[, samIDs]
+
+  # Create abundance list
+  cat("Recreate taxa abundance list ...\n")
+  hierachs <- intersect(c('Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'), names(abund.list.12))
+  for (hierach in hierachs) {
+
+    if (hierach != 'Phylum') {
+      single.names <- otu.name.12[, hierach]
+      #	single.names[grepl('unclassified', single.names, ignore.case=T)] <- paste0('Unclassified',substr(hierach, 1, 1))
+      tax.family <- paste(otu.name.12[, 'Phylum'], single.names, sep=";")
+      tax.family[grepl('unclassified', tax.family, ignore.case=T)] <- paste0('Unclassified_', hierach)
+    } else {
+      tax.family <- otu.name.12[, 'Phylum']
+      tax.family[grepl('unclassified', tax.family, ignore.case=T)] <- 'Unclassified_Phylum'
+    }
+    family <- aggregate(otu.tab.12, by=list(tax.family), FUN=sum)
+    rownames(family) <- family[, 1]
+    family <- as.matrix(family[, -1])
+    abund.list.12[[hierach]] <- family
+  }
+
+  if ('Species' %in% hierachs) {
+    abund.list.12[['Species']] <- otu.tab.12
+    rownames(abund.list.12[['Species']]) <- paste0("OTU", rownames(otu.tab.12), ":", otu.name.12[, 'Phylum'], ";", otu.name.12[, 'Genus'])
+  }
+
+  data.obj$meta.dat <- meta.dat  # Rev: 2017_01_19
+  data.obj$otu.tab <- otu.tab.12
+  data.obj$otu.name <- otu.name.12
+  data.obj$otu.name.full <- otu.name.full
+  data.obj$abund.list <- abund.list.12
+  data.obj$rff <- TRUE
+  data.obj$rff.depth <- dep
+  cat('After rarefaction, the size factor is automatically set to be the rarefaction depth!\n')
+  data.obj$norm.method <- 'TSS'
+  data.obj$norm.level <- 'OTU'
+  data.obj$size.factor <- colSums(otu.tab.12)
+
+  # Futher subset if it contains functional data
+  data.obj <- subset_data(data.obj, samIDs)
+  data.obj$act.seq <- paste0(data.obj$act.seq, 'R')
+  #	data.obj$act.seq <- paste0(data.obj$act.seq, 'N')
+  return(data.obj)
+}
+
+# New: 2018_08_22, rarefaction by strata
+# Functional data will not be rarefied
+rarefy_data_strata <- function (data.obj, strata1, strata2) {
+  otu.tab.12 <- data.obj$otu.tab
+  otu.name.12 <- data.obj$otu.name
+  otu.name.full <- data.obj$otu.name.full
+  abund.list.12 <- data.obj$abund.list
+  siz.factor <- data.obj$size.factor
+  meta.dat <- data.obj$meta.dat
+
+  cat('Rarefaction by strata ...\n')
+  strata1 <- data.obj$meta.dat[, strata1]
+  strata2 <- data.obj$meta.dat[, strata2]
+
+  strata <- factor(paste(strata1, strata2))
+  slevels <- levels(strata)
+
+  for (slevel in slevels) {
+    ind <- which(strata == slevel)
+    if (length(ind) >= 2) {
+      otu.tab.12[, ind] <- t(Rarefy(t(otu.tab.12[, ind]))$otu.tab.rff)
+    }
+  }
+
+  # Remove empty OTUs
+  otu.ind <- rowSums(otu.tab.12) > 0  # rev:2016-06-28
+  otu.tab.12 <- otu.tab.12[otu.ind, ]
+  otu.name.12 <- otu.name.12[otu.ind, ]
+  otu.name.full <- otu.name.full[otu.ind, ]
+
+  samIDs <- intersect(rownames(meta.dat), colnames(otu.tab.12))
+
+  if (length(samIDs) < nrow(meta.dat)) {
+    warning('Some samples were lost during rarefaction!\n')
+  }
+
+  meta.dat <- meta.dat[samIDs, ]
+  otu.tab.12 <- otu.tab.12[, samIDs]
+
+  # Create abundance list
+  cat("Recreate taxa abundance list ...\n")
+  hierachs <- intersect(c('Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'), names(abund.list.12))
+  for (hierach in hierachs) {
+
+    if (hierach != 'Phylum') {
+      single.names <- otu.name.12[, hierach]
+      #	single.names[grepl('unclassified', single.names, ignore.case=T)] <- paste0('Unclassified',substr(hierach, 1, 1))
+      tax.family <- paste(otu.name.12[, 'Phylum'], single.names, sep=";")
+      tax.family[grepl('unclassified', tax.family, ignore.case=T)] <- paste0('Unclassified_', hierach)
+    } else {
+      tax.family <- otu.name.12[, 'Phylum']
+      tax.family[grepl('unclassified', tax.family, ignore.case=T)] <- 'Unclassified_Phylum'
+    }
+    family <- aggregate(otu.tab.12, by=list(tax.family), FUN=sum)
+    rownames(family) <- family[, 1]
+    family <- as.matrix(family[, -1])
+    abund.list.12[[hierach]] <- family
+  }
+
+  if ('Species' %in% hierachs) {
+    abund.list.12[['Species']] <- otu.tab.12
+    rownames(abund.list.12[['Species']]) <- paste0("OTU", rownames(otu.tab.12), ":", otu.name.12[, 'Phylum'], ";", otu.name.12[, 'Genus'])
+  }
+
+  data.obj$meta.dat <- meta.dat  # Rev: 2017_01_19
+  data.obj$otu.tab <- otu.tab.12
+  data.obj$otu.name <- otu.name.12
+  data.obj$otu.name.full <- otu.name.full
+  data.obj$abund.list <- abund.list.12
+  data.obj$rff <- TRUE
+  data.obj$rff.depth <- dep
+  cat('After rarefaction, the size factor is automatically set to be the rarefaction depth!\n')
+  data.obj$norm.method <- 'TSS'
+  data.obj$norm.level <- 'OTU'
+  data.obj$size.factor <- colSums(otu.tab.12)
+
+  # Futher subset if it contains functional data
+  data.obj <- subset_data(data.obj, samIDs)
+  data.obj$act.seq <- paste0(data.obj$act.seq, 'R')
+  #	data.obj$act.seq <- paste0(data.obj$act.seq, 'N')
+  return(data.obj)
+}
+
+# New: 2017_04_18
+remove_otu <- function (data.obj, ind) {
+  data.obj$otu.tab <- data.obj$otu.tab[ind, ]
+  data.obj$otu.name <- data.obj$otu.name[ind, ]
+  data.obj$otu.name.full <- data.obj$otu.name.full[ind, ]
+
+  # Re-create Abundance
+  otu.name <- data.obj$otu.name
+  otu.tab <- data.obj$otu.tab
+  abund.list <- list()
+  hierachs <- c('Phylum', 'Class', 'Order', 'Family', 'Genus')
+  for (hierach in hierachs) {
+    if (hierach != 'Phylum') {
+      single.names <- otu.name[, hierach]
+      #	single.names[grepl('unclassified', single.names, ignore.case=T)] <- paste0('Unclassified',substr(hierach, 1, 1))
+      tax.family <- paste(otu.name[, 'Phylum'], single.names, sep=";")
+      tax.family[grepl('unclassified', tax.family, ignore.case=T)] <- paste0('Unclassified_', hierach)
+    } else {
+      tax.family <- otu.name[, 'Phylum']
+      tax.family[grepl('unclassified', tax.family, ignore.case=T)] <- 'Unclassified_Phylum'
+    }
+    family <- aggregate(otu.tab, by=list(tax.family), FUN=sum)
+    rownames(family) <- family[, 1]
+    family <- as.matrix(family[, -1])
+    abund.list[[hierach]] <- family
+  }
+
+  data.obj$abund.list <- abund.list
+  return(data.obj)
+}
+
+# New: 2017_10_17
+update_name <- function (data.obj, new.name) {
+
+  if (length(new.name) != nrow(data.obj$meta.dat)) stop('The number of sample do not agree!\n')
+  if (length(new.name) != length(unique(new.name))) stop ('The new names have duplicates!\n')
+
+  rownames(data.obj$meta.dat) <- new.name
+  data.obj$abund.list <- lapply(data.obj$abund.list, function (x) {colnames(x) <- new.name; x})
+  colnames(data.obj$otu.tab) <- new.name
+  if(!is.null(data.obj$size.factor))  names(data.obj$size.factor) <- new.name
+
+  return(data.obj)
+}
+
+# Rev: 2016_09_22
+update_data <- function (data.obj, map.file, meta.sep='\t', quote="\"", comment="", ...) {
+  cat("Load meta file...\n")
+  if (is.character(map.file)) {
+    if (grepl("csv$", map.file)) {
+      meta.dat <- read.csv(map.file, header=T, check.names=F, row.names=1, comment=comment, quote=quote, ...)
+    } else {
+      meta.dat <- read.table(map.file, header=T, check.names=F, row.names=1, comment=comment, sep=meta.sep, quote=quote, ...)
+    }
+  } else {
+    meta.dat <- map.file
+  }
+
+  data.obj$meta.dat <- meta.dat
+
+  samIDs <- intersect(rownames(meta.dat), colnames(data.obj$otu.tab))
+  if (length(samIDs) == 0)  stop('Sample names in the meta file and biom file differ?\n')
+  data.obj <- subset_data(data.obj, samIDs)
+  return(data.obj)
+}
+
+# New: 2017_02_16  aggregate data
+# New: 2017_11_02  add more variable
+aggregate_data <- function (data.obj, subject, strata = NULL) {
+  cat('Aggregate data by a factor ...\n')
+  subject <- (data.obj$meta.dat[,  subject])
+
+  if (!is.null(strata)) {
+    grp <- (data.obj$meta.dat[,  strata])
+  }
+
+  data.obj.new <- list()
+  abund.list<- list()
+  for (name in names(data.obj$abund.list)) {
+    abund <- data.obj$abund.list[[name]]
+    if (is.null(strata)) {
+      obj <- aggregate(t(abund), by=list(subject), sum)
+      abund.list[[name]] <- t(as.matrix(obj[, -1]))
+      colnames(abund.list[[name]]) <- obj[, 1]
+    } else {
+      obj <- aggregate(t(abund), by=list(subject, grp), sum)
+      abund.list[[name]] <- t(as.matrix(obj[, -(1:2)]))
+      colnames(abund.list[[name]]) <- paste(obj[, 1], obj[, 2], sep="_")
+    }
+  }
+  data.obj.new$abund.list <- abund.list
+
+  abund <- data.obj$otu.tab
+  if (is.null(strata)) {
+    obj <- aggregate(t(abund), by=list(subject), sum)
+    otu.tab <- t(as.matrix(obj[, -1]))
+    colnames(otu.tab) <- obj[, 1]
+  } else {
+    obj <- aggregate(t(abund), by=list(subject, grp), sum)
+    otu.tab <- t(as.matrix(obj[, -(1:2)]))
+    colnames(otu.tab) <- paste(obj[, 1], obj[, 2], sep="_")
+  }
+
+  data.obj.new$otu.tab <- otu.tab
+
+  data.obj.new$tree <- data.obj$tree
+  data.obj.new$otu.name <- data.obj$otu.name
+  data.obj.new$otu.name.full <- data.obj$otu.name.full
+
+  if (is.null(strata)) {
+    unique.ct <- aggregate(data.obj$meta.dat, by=list(subject), function(x) {
+      length(unique(x))
+    })
+
+    unique.ct <- as.matrix(unique.ct[, -1])
+    ind <- colSums(unique.ct) == nlevels(factor(subject))
+
+    meta.dat <- aggregate(data.obj$meta.dat, by=list(subject), function(x) {
+      x[1]
+    })
+    rownames(meta.dat) <- meta.dat[, 1]
+    meta.dat <- meta.dat[, -1]
+    meta.dat <- meta.dat[, ind]
+  } else {
+    unique.ct <- aggregate(data.obj$meta.dat, by=list(subject, grp), function(x) {
+      length(unique(x))
+    })
+
+    unique.ct <- as.matrix(unique.ct[, -(1:2)])
+    ind <- colSums(unique.ct) == nrow(unique.ct)
+
+    meta.dat <- aggregate(data.obj$meta.dat, by=list(subject, grp), function(x) {
+      x[1]
+    })
+    rownames(meta.dat) <- paste(meta.dat[, 1], meta.dat[, 2], sep="_")
+    meta.dat <- meta.dat[, -(1:2)]
+    meta.dat <- meta.dat[, ind]
+  }
+
+  data.obj.new$meta.dat <- meta.dat
+  data.obj.new$winsor <- data.obj$winsor
+  data.obj.new$winsor.qt <- data.obj$winsor.qt
+  data.obj.new$rff <- data.obj$rff
+  data.obj.new$act.seq <- paste0(data.obj$act.seq, 'A')
+
+  cat('Finished!\n')
+  return(data.obj.new)
+}
+
+
+# New: 2017_06_01 Remove reads belonging to specific taxa
+remove_taxa <- function (data.obj, taxa.level='Genus', taxa.names) {
+  # Remove Methanothermococcus
+  if (taxa.level == 'OTU') {
+    if (is.numeric(taxa.names)) warning('taxa.names should be characters!\n')
+    ind <- !(rownames(data.obj$otu.tab) %in% paste(taxa.names))
+    if (sum(!ind) == 0) {
+      warning('Do not detect the given OTUs! Check the OTU names!\n')
+      return(data.obj)
+    }
+  } else {
+    if (!taxa.level %in% colnames(data.obj$otu.name)) {
+      stop("Can't find the specified taxa levels!\n")
+    }
+    ind <- !(data.obj$otu.name[, taxa.level] %in% taxa.names)
+
+    if (sum(!ind) == 0) {
+      warning('Do not detect the given taxa! Check the taxa level!\n')
+      return(data.obj)
+    }
+  }
+
+  cat(sum(!ind), ' OTUs will be removed!\n')
+
+  data.obj$otu.tab <- data.obj$otu.tab[ind, ]
+  data.obj$otu.name <- data.obj$otu.name[ind, ]
+  data.obj$otu.name.full <- data.obj$otu.name.full[ind, ]
+
+  # Re-create Abundance
+  otu.name <- data.obj$otu.name
+  otu.tab <- data.obj$otu.tab
+  abund.list <- list()
+  hierachs <- c('Phylum', 'Class', 'Order', 'Family', 'Genus')
+  for (hierach in hierachs) {
+    if (hierach != 'Phylum') {
+      single.names <- otu.name[, hierach]
+      #	single.names[grepl('unclassified', single.names, ignore.case=T)] <- paste0('Unclassified',substr(hierach, 1, 1))
+      tax.family <- paste(otu.name[, 'Phylum'], single.names, sep=";")
+      tax.family[grepl('unclassified', tax.family, ignore.case=T)] <- paste0('Unclassified_', hierach)
+    } else {
+      tax.family <- otu.name[, 'Phylum']
+      tax.family[grepl('unclassified', tax.family, ignore.case=T)] <- 'Unclassified_Phylum'
+    }
+    family <- aggregate(otu.tab, by=list(tax.family), FUN=sum)
+    rownames(family) <- family[, 1]
+    family <- as.matrix(family[, -1])
+    abund.list[[hierach]] <- family
+  }
+  if ('Species' %in% names(data.obj$abund.list)) {
+    abund.list[['Species']] <- data.obj$abund.list[['Species']][ind, ]
+  }
+  data.obj$abund.list <- abund.list
+  # Erase size factor
+  data.obj$size.factor <- NULL
+  data.obj$norm.method <- NULL
+  data.obj$norm.level <- NULL
+  if (!is.na.null(data.obj$rff)) {
+    if (data.obj$rff == TRUE) {
+      warning('The function is not intended to be applied to rarefied object! Rarefaction should be performed again!\n')
+      data.obj$rff <- FALSE
+      data.obj$rff.dep <- NULL
+    }
+  }
+  data.obj$act.seq <- NULL
+  cat('Remove taxa Finished!\n')
+
+  ind <- colSums(data.obj$otu.tab) != 0
+
+  if (sum(!ind) != 0) {
+    cat(sum(!ind), ' samples contain no reads and they are removed!')
+    data.obj <- subset_data(data.obj, ind)
+  }
+  return(data.obj)
+}
+
+# New: 2016_12_12
+# intersect.no=4, winsor.qt=0.97
+calculate_size <- function (data.obj, level='OTU', norm='GMPR', ...) {
+  if (!is.null(data.obj$rff)) {
+    if (data.obj$rff)
+      warning("The data has been rarefied! Better calculate the size factor for unrarefied data!\n")
+  }
+  if (!is.null(data.obj$winsor)) {
+    if (data.obj$winsor) {
+      warning("The data has been winsorized! Better calculate the size factor before winsorization!\n")
+    }
+  }
+
+  if (level == 'OTU') {
+    data <- data.obj$otu.tab
+  } else {
+    if (level %in% names(data.obj$abund.list)) {
+      data <- data.obj$abund.list[[level]]
+    } else {
+      data <- data.obj$otu.tab
+      level <-'OTU'
+      warning('No or wrong level specified! OTU level will be used!\n')
+    }
+  }
+  if (norm == 'TSS') {
+    sf <- colSums(data)
+    norm <- 'TSS'
+  }
+  if (norm == 'GMPR') {
+    sf <- GMPR(data, ...)
+    #		warning('GMPR is only suitable for samples from a same body location!\n')
+    norm <- 'GMPR'
+  }
+  names(sf) <- colnames(data)
+  data.obj$size.factor <- sf
+  data.obj$norm.method <- norm
+  data.obj$norm.level <- level
+  data.obj$act.seq <- paste0(data.obj$act.seq, 'N')
+  return(data.obj)
+}
+
+# Rev: 2016_12_08
+winsor_data <- function (data.obj, winsor.qt=0.97) {
+  if (data.obj$rff) {
+    warning("The data has been rarefied! Better winsorize without rarefaction!\n")
+  }
+  cat('Winsorize ...\n')
+  if (is.null(winsor.qt)) {
+    winsor.qt <- 0.97
+  }
+  otu.tab.12 <- data.obj$otu.tab
+  abund.list.12 <- data.obj$abund.list
+
+  # Rev: 2016_12_08
+  if (is.null(data.obj$size.factor)) {
+    sf <- colSums(otu.tab.12)
+    data.obj$norm.method <- 'TSS'
+    data.obj$norm.level <- 'OTU'
+    data.obj$size.factor <- sf
+    cat('Size factor not available! Calculating using total sum! You may consider using better method such as GMPR!\n')
+    data.obj$act.seq <- paste0(data.obj$act.seq, 'N')
+  } else {
+    sf <- data.obj$size.factor
+  }
+
+  # Addressing the outlier (97% percent) or at least one outlier
+  abund.list.12 <- lapply(abund.list.12, function(genus) {
+    genus.p <- t(t(genus) / sf)
+    genus.p <- apply(genus.p, 1, function(x) {
+      cutoff <- quantile(x, winsor.qt)
+      x[x >= cutoff] <- cutoff
+      x
+    }
+    )
+    # column/row switch
+    genus.w <- t(round(genus.p * sf))
+  })
+  # OTU table
+  otu.tab.12.p <- t(t(otu.tab.12) / sf)
+  otu.tab.12.p <- apply(otu.tab.12.p, 1, function(x) {
+    cutoff <- quantile(x, winsor.qt)
+    x[x >= cutoff] <- cutoff
+    x
+  }
+  )
+  # column/row switch
+  otu.tab.12 <- t(round(otu.tab.12.p * sf))
+  data.obj$winsor <- TRUE
+  data.obj$winsor.qt <- winsor.qt
+  data.obj$otu.tab <- otu.tab.12
+  data.obj$abund.list <- abund.list.12
+  data.obj$act.seq <- paste0(data.obj$act.seq, 'W')
+  #data.obj$size.factor <- sf
+  return(data.obj)
+}
+
+# Rev: 2016_11_28, Bray-curtis use normalized data.
+construct_distance <- function (data.obj, unifrac.file=NULL,  Phylum='All', dist.RData=NULL, save.RData=NULL,
+                                filter.no=0, rff=FALSE, dep=NULL, seed=1234) {
+  set.seed(seed)
+
+  if (!is.null(dist.RData)) {
+    load(dist.RData, envir=.GlobalEnv )
+  } else {
+    dist.list.12 <- list()
+    cat("Generalized UniFrac ...\n")
+
+    otu.tab <- t(data.obj$otu.tab)
+
+    if (rff == TRUE) {
+      if (is.null(dep)) {
+        otu.tab <- Rarefy(otu.tab)$otu.tab.rff
+      } else {
+        otu.tab <- Rarefy(otu.tab, dep)$otu.tab.rff
+      }
+    }
+
+    if (Phylum != 'All') {
+      ind <- data.obj$otu.name[, 'Phylum'] == Phylum
+      otu.tab <- otu.tab[, ind]
+    }
+
+    # Filter otus with reads <= filter.no
+    otu.tab <- otu.tab[, colSums(otu.tab) > filter.no]
+
+    # Remove samples with no reads
+    if (sum(rowSums(otu.tab) == 0) >= 1) {
+      otu.tab <- otu.tab[rowSums(otu.tab) != 0, ]
+      warning('Some samples do not have reads after rarefaction! Please be careful!\n')
+    }
+
+    # To make sure the OTUs in otu.tab are in the tree (rev:2016-06-19)
+
+    if (sum(!(colnames(otu.tab) %in% data.obj$tree$tip.label))) {
+      warning('Some OTU names are not in the tree! An intersection set will be used!\n')
+    }
+    common.otus <- intersect(colnames(otu.tab), data.obj$tree$tip.label)
+    unifrac12 <- GUniFrac(otu.tab[, common.otus], data.obj$tree)$unifracs
+
+    dist.list.12[['WUniFrac']] <- unifrac12[, , 'd_1']
+    dist.list.12[['GUniFrac']] <- unifrac12[, , 'd_0.5']
+    if (is.null(unifrac.file)) {
+      dist.list.12[['UniFrac']] <- unifrac12[, , 'd_UW']
+    } else {
+      # The orders may be different
+      dist.list.12[['UniFrac']] <- as.matrix(read.table(unifrac.file, row.names=1, header=T)) # Rarefaction
+    }
+
+    # Need speed up
+    # Suggest using rarefied counts
+    # If case/control has different sequencing depth, it will result in false clustering!
+    # Rev: 2016_11_28 Use normalized data for BC distance calculation to reduce noise in case of variable library size
+    dist.list.12[['BC']] <-as.matrix(vegdist(otu.tab / rowSums(otu.tab)))
+
+    genus <- t(data.obj$abund.list[['Genus']])
+    genus <- genus / rowSums(genus)
+    dist.list.12[['Euc']] <- as.matrix(dist(genus))
+
+    genus <- sqrt(genus)
+    dist.list.12[['Hel']] <-as.matrix(dist(genus))
+    #		dist.list.12[['JS']] <- as.matrix(distance(otu_table(data.obj$abund.list[['Genus']], taxa_are_rows=T), method='jsd'))
+
+    if (!is.null(save.RData)) {
+      save(dist.list.12, file=save.RData)
+    }
+  }
+
+  return(dist.list.12)
+}
+
+outlier_detect <- function (data.obj, dist.obj, min.dep=2000) {
+  # Future development
+  samIDs <- colnames(data.obj$otu.tab)[colSums(data.obj$otu.tab) >= 2000]
+  return(samIDs)
+}
+
+# Rev: 2016_09_26 remove empty OTUs/taxa
+# Rev: 2016_12_01 add more logical controls
+subset_data <- function (data.obj, samIDs) {
+
+  # Rev: 2016_1_19 to add error protection
+  # Transform logical samIDs into characer samIDs
+  if (is.logical(samIDs) | is.numeric(samIDs)) {
+    samIDs <- rownames(data.obj$meta.dat)[samIDs]
+  }
+
+  data.obj$meta.dat <- data.obj$meta.dat[samIDs, , drop=FALSE]
+
+  if (!is.na.null(data.obj$otu.tab)) {
+
+    data.obj$otu.tab <- data.obj$otu.tab[, samIDs, drop=FALSE]
+    data.obj$otu.tab <- data.obj$otu.tab[rowSums(data.obj$otu.tab) != 0, , drop=FALSE]
+    data.obj$otu.name <- data.obj$otu.name[rownames(data.obj$otu.tab), , drop=FALSE]
+
+    if (!is.na.null(data.obj$otu.name.full)) {
+      data.obj$otu.name.full <- data.obj$otu.name.full[rownames(data.obj$otu.tab), , drop=FALSE]
+    }
+  }
+
+  if (!is.na.null(data.obj$abund.list)) {
+    data.obj$abund.list <- lapply(data.obj$abund.list, function(x) {
+      xx <- x[, samIDs, drop=FALSE]
+      xx <- xx[rowSums(xx) != 0, , drop=FALSE]
+    })
+  }
+
+  if (!is.na.null(data.obj$size.factor)) {
+    data.obj$size.factor <- data.obj$size.factor[samIDs]
+  }
+
+  if (!is.na.null(data.obj$ko.list)) {
+    data.obj$ko.list <- lapply(data.obj$ko.list, function(x) {
+      xx <- x[, samIDs, drop=FALSE]
+      xx <- xx[rowSums(xx) != 0, , drop=FALSE]
+    })
+  }
+
+  if (!is.na.null(data.obj$cog.list)) {
+    data.obj$cog.list <- lapply(data.obj$cog.list, function(x) {
+      xx <- x[, samIDs, drop=FALSE]
+      xx <- xx[rowSums(xx) != 0, , drop=FALSE]
+    })
+  }
+  return(data.obj)
+}
+
+# Rev: 2016_12_01 add more logical controls
+# Rev: 2016_02_01 fix one error
+subset_dist <- function (dist.obj, samIDs) {
+
+  # Rev: 2016_1_19 to add error protection
+  # Transform logical samIDs into character samIDs
+  if (is.logical(samIDs) | is.numeric(samIDs)) {
+    samIDs <- rownames(dist.obj[[1]])[samIDs]
+  }
+
+  lapply(dist.obj, function(x) {
+    if(!is.na.null(x)){
+      x <- x[samIDs, samIDs]
+    } else {
+      x
+    }
+    x
+  })
+}
+
+# New: 2018_06_10
+generate_detailed_taxonomy <- function (data.obj, finest = 'Species', unclassified.symbol='unclassified') {
+  # Create abundance list
+
+  otu.name.12 <- data.obj$otu.name
+  otu.name.12[otu.name.12 == '' | is.na(otu.name.12)] <- unclassified.symbol
+  otu.tab.12 <- data.obj$otu.tab
+
+  if (finest == 'Species') {
+    hierachs <- rev(c('Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'))
+  } else {
+    hierachs <- rev(c('Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus'))
+  }
+
+  abund.list.12 <- NULL
+  otu.tab <- otu.tab.12
+  otu.name <- otu.name.12
+  for (hierach in hierachs) {
+    single.names <- otu.name[, hierach]
+    if (hierach == 'Species' ) {
+      tax.family <- paste0(otu.name[, 'Phylum'], ';', single.names)
+    }
+    if (hierach %in% c('Phylum', 'Kingdom')) {
+      tax.family <- single.names
+    }
+
+    if (hierach %in% c('Class', 'Order', 'Family', 'Genus')) {
+      tax.family <- single.names
+      tax.family <- paste0(otu.name[, 'Phylum'], ';', single.names)
+    }
+
+    if (hierach == 'Kingdom') {
+      unclassified.ind <- rep(FALSE, length(tax.family))
+      classified.ind <- !unclassified.ind
+    } else {
+      unclassified.ind <- grepl(unclassified.symbol, tax.family, ignore.case=T)
+      classified.ind <- !unclassified.ind
+    }
+
+    otu.tab0 <- otu.tab[classified.ind, , drop=FALSE]
+    tax.family0 <- tax.family[classified.ind, drop=FALSE]
+
+    family <- aggregate(otu.tab0, by=list(tax.family0), FUN=sum)
+    rownames(family) <- family[, 1]
+    family <- as.matrix(family[, -1])
+    abund.list.12 <- rbind(abund.list.12, family)
+
+    if (sum(unclassified.ind) != 0) {
+      otu.tab <- otu.tab[unclassified.ind, , drop=FALSE]
+      otu.name <- otu.name[unclassified.ind, , drop=FALSE]
+    } else{
+      break
+    }
+
+  }
+  data.obj$abund.list[['Detailed']] <- abund.list.12
+  return(data.obj)
+}
