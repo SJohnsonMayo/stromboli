@@ -228,7 +228,7 @@ GMPR <- function(comm, intersect.no = 4, ct.min = 2, trace = FALSE) {
     # Counting the number of non-NA, NaN, Inf
     incl.no <- colSums(!is.na(pr))
     # Calculate the median of PR
-    pr.median <- colMedians(pr, na.rm = TRUE)
+    pr.median <- matrixStats::colMedians(pr, na.rm = TRUE)
     # Record the number of samples used for calculating the GMPR
     comm.no[i] <<- sum(incl.no >= intersect.no)
     # Geometric mean of PR median
@@ -405,7 +405,7 @@ PermanovaG2 <- function(formula, dat = NULL, ...) {
     assign(".Random.seed", save.seed, .GlobalEnv)
     Y <- as.dist(lhs[, , i])
     formula2 <- as.formula(paste("Y", "~", rhs))
-    obj <- adonis(formula2, dat, ...)
+    obj <- vegan::adonis(formula2, dat, ...)
     perm.mat <- obj$f.perms
     p.perms[[i]] <- 1 - (apply(perm.mat, 2, rank) - 1)/nrow(perm.mat)
     p.obs[[i]] <- obj$aov.tab[1:ncol(perm.mat), "Pr(>F)"]
@@ -415,7 +415,7 @@ PermanovaG2 <- function(formula, dat = NULL, ...) {
   for (j in 1:ncol(perm.mat)) {
     p.perms.j <- sapply(p.perms, function(x) x[, j])
     p.obj.j <- sapply(p.obs, function(x) x[j])
-    omni.pv <- c(omni.pv, mean(c(rowMins(p.perms.j) <= min(p.obj.j),
+    omni.pv <- c(omni.pv, mean(c(matrixStats::rowMins(p.perms.j) <= min(p.obj.j),
                                  1)))
     indiv.pv <- rbind(indiv.pv, p.obj.j)
   }
@@ -970,7 +970,7 @@ perform_differential_analysis <- function(data.obj, grp.name, adj.name = NULL,
         ct <- ct[rownames(prop0), , drop = FALSE]
       }
       if (!is.null(minp)) {
-        prop0 <- prop0[rowMaxs(prop0) > minp, , drop = FALSE]
+        prop0 <- prop0[matrixStats::rowMaxs(prop0) > minp, , drop = FALSE]
         ct <- ct[rownames(prop0), , drop = FALSE]
       }
       if (!is.null(medianp)) {
@@ -1136,7 +1136,7 @@ perform_differential_analysis <- function(data.obj, grp.name, adj.name = NULL,
         ct <- ct[rownames(prop0), , drop = FALSE]
       }
       if (!is.null(minp)) {
-        prop0 <- prop0[rowMaxs(prop0) > minp, , drop = FALSE]
+        prop0 <- prop0[matrixStats::rowMaxs(prop0) > minp, , drop = FALSE]
         ct <- ct[rownames(prop0), , drop = FALSE]
       }
       if (!is.null(medianp)) {
@@ -1293,7 +1293,7 @@ bootstrap.pwr <- function(pcs, formula, dat, ns = NULL, perm.no = 199,
       bt.ind <- sample(1:nrow(dat), n, repl = T)
       dat.bt <- dat[bt.ind, ]
       dist.bt <- dist(pcs[bt.ind, ])
-      aov.tab <- adonis(as.formula(paste("dist.bt", formula)), dat = dat.bt,
+      aov.tab <- vegan::adonis(as.formula(paste("dist.bt", formula)), dat = dat.bt,
                         permutations = perm.no)$aov.tab
       pv <- aov.tab[nrow(aov.tab) - 2, ncol(aov.tab)]
     })

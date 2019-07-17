@@ -1,5 +1,65 @@
+generate_ordination2 <- function (data.obj, dist.obj, dist.names=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'),
+                                  grp.name, adj.name=NULL, emp.lev=NULL, strata=NULL, pc.separate, pca.method='cmd', ann=NULL, sub=NULL,
+                                  clab=1.0, cex.pt=1.25, ellipse=T, cstar= 1, wid=900, hei=600, ...) {
+  # Implment strata
+  # To be completed, add continuous case
+  strata0 <- strata
+
+  df <- data.obj$meta.dat
+  grp <- factor(df[, grp.name])
+
+  if (is.null(emp.lev)) {
+    grp <- factor(grp, levels=c(setdiff(levels(grp), emp.lev), emp.lev))
+  }
+
+  if (!is.null(strata)) {
+    strata <- factor(df[, strata])
+  } else {
+    strata <- factor(grp)
+  }
+  y <- list()
+  for (dist.name in dist.names) {
+    dist.temp <- dist.obj[[dist.name]]
+    if (!is.null(adj.name)) {
+      adj <- as.data.frame(df[, adj.name])
+      obj <- cmdscale(as.dist(dist.temp), k=ncol(dist.temp)-1)
+      dat2 <- apply(obj, 2, function(x) resid(lm(x ~ ., data=adj)))
+      dist.temp <- dist(dat2)
+    }
+    if (pca.method == 'cmd') {
+      obj <- cmdscale(as.dist(dist.temp), k=2, eig=T)
+      pve <- round(obj$eig[1:2]/sum(abs(obj$eig))*100, 1)
+      y[[dist.name]] <- cbind(obj$points[, 1], obj$points[, 2])
+      xlab <- paste0('PC1(', pve[1], '%)')
+      ylab <- paste0('PC2(', pve[2], '%)')
+    }
+
+    if (pca.method == 'nmds') {
+      obj <- metaMDS(as.dist(dist.temp), k=2)
+      y[[dist.name]] <- cbind(obj$points[, 1], obj$points[, 2])
+      xlab <- 'NMDS1'
+      ylab <- 'NMDS2'
+    }
+
+    colnames(y[[dist.name]]) <- c("PC1", "PC2")
+    y[[dist.name]] <- as.data.frame(y[[dist.name]])
+    y[[dist.name]]$type <- grp
+    centroids <- aggregate(cbind(PC1,PC2)~type,data=y[[dist.name]],mean)
+    y[[dist.name]] <- merge(y[[dist.name]], centroids, by="type", suffixes=c("",".centroid"))
+  }
+  mtest <- melt(y, id=c('PC1', 'PC2', 'PC1.centroid', 'PC2.centroid', measure=c('type')))
+  test <- y
+  obj <- ggplot(mtest, aes(x=PC1, y=PC2, color=type)) +
+    geom_point(size=3) +
+    geom_point(data=centroids,aes(x=PC1,y=PC2,color=type)) +
+    geom_segment(aes(x=PC1.centroid, y=PC2.centroid, xend=PC1, yend=PC2, color=type)) +
+    stat_ellipse() +
+    facet_wrap(~ L1, scale="free") + theme_bw()
+  return(obj)
+}
+
 # Rev: 2017_02_13 Individual label Rev: 2017_05_06 Add p value
-generate_ordination <- function(data.obj, dist.obj, dist.names = c("UniFrac",
+OLD.generate_ordination <- function(data.obj, dist.obj, dist.names = c("UniFrac",
                                                                    "GUniFrac", "WUniFrac", "BC"), grp.name, adj.name = NULL, emp.lev = NULL,
                                 indiv.lab = FALSE, indiv.lab.cex = 0.5, is.lightcolor = TRUE, strata = NULL,
                                 pc.separate, pca.method = "cmd", ann = NULL, sub = NULL, clab = 1,
@@ -27,9 +87,9 @@ generate_ordination <- function(data.obj, dist.obj, dist.names = c("UniFrac",
     strata <- factor(grp)
   }
   # To be revised
-  darkcols <- hue_pal(l = 40)(nlevels(grp))
+  darkcols <- scales::hue_pal(l = 40)(nlevels(grp))
   if (is.lightcolor) {
-    lightcols <- hue_pal(c = 45, l = 80)(nlevels(grp))
+    lightcols <- scales::hue_pal(c = 45, l = 80)(nlevels(grp))
   } else {
     lightcols <- darkcols
   }
@@ -65,7 +125,7 @@ generate_ordination <- function(data.obj, dist.obj, dist.names = c("UniFrac",
       ylab <- "PLS2"
     }
     if (is.pvalue == TRUE & nlevels(factor(grp)) > 1) {
-      pvalue <- paste0("(P=", adonis(as.dist(dist.temp) ~ grp)$aov.tab[1,
+      pvalue <- paste0("(P=", vegan::adonis(as.dist(dist.temp) ~ grp)$aov.tab[1,
                                                                        6], ")")
     } else {
       pvalue <- ""
@@ -92,7 +152,7 @@ generate_ordination <- function(data.obj, dist.obj, dist.names = c("UniFrac",
       col3[grp == emp.lev] <- rgb(1, 0, 0, 1)
     }
     if (ellipse == T) {
-      s.class(y, fac = grp, cstar = cstar, clab = 0, cpoint = 0,
+      ade4::s.class(y, fac = grp, cstar = cstar, clab = 0, cpoint = 0,
               axesell = F, col = col1, grid = TRUE, add.plot = T, ...)
     }
     points(y[, 1], y[, 2], bg = col3, col = "black", type = "p", pch = pchs[strata],
@@ -109,7 +169,7 @@ generate_ordination <- function(data.obj, dist.obj, dist.names = c("UniFrac",
              col = rgb(1, 0, 0, 0.75))
       }
     }
-    s.class(y, fac = grp, cstar = 0, cellipse = 0, clab = clab, cpoint = 0,
+    ade4::s.class(y, fac = grp, cstar = 0, cellipse = 0, clab = clab, cpoint = 0,
             axesell = F, col = col2, grid = TRUE, add.plot = T)
     if (!is.null(strata0)) {
       legend("topright", legend = (levels(strata)), pch = pchs[1:nlevels(strata)])
@@ -556,7 +616,7 @@ generate_ordination_separate <- function(data.obj, dist.obj, dist.names = c("Uni
         ylab <- "PLS2"
       }
       if (is.pvalue == TRUE & nlevels(factor(grp2)) > 1) {
-        pvalue <- paste0("(P=", adonis(as.dist(dist.temp2) ~ grp2)$aov.tab[1,
+        pvalue <- paste0("(P=", vegan::adonis(as.dist(dist.temp2) ~ grp2)$aov.tab[1,
                                                                            6], ")")
       } else {
         pvalue <- ""
@@ -585,7 +645,7 @@ generate_ordination_separate <- function(data.obj, dist.obj, dist.names = c("Uni
         col3[grp2 == emp.lev] <- rgb(1, 0, 0, 1)
       }
       if (ellipse == T) {
-        s.class(y, fac = grp2, cstar = cstar, clab = 0, cpoint = 0,
+        ade4::s.class(y, fac = grp2, cstar = cstar, clab = 0, cpoint = 0,
                 axesell = F, col = col1, grid = TRUE, add.plot = T, ...)
       }
       points(y[, 1], y[, 2], bg = col3, col = "black", type = "p",
@@ -602,7 +662,7 @@ generate_ordination_separate <- function(data.obj, dist.obj, dist.names = c("Uni
                col = rgb(1, 0, 0, 0.75))
         }
       }
-      s.class(y, fac = grp2, cstar = 0, cellipse = 0, clab = clab,
+      ade4::s.class(y, fac = grp2, cstar = 0, cellipse = 0, clab = clab,
               cpoint = 0, axesell = F, col = col2, grid = TRUE, add.plot = T)
       if (!is.null(strata0)) {
         legend("topright", legend = (levels(strata2)), pch = pchs[1:nlevels(strata2)])
@@ -888,7 +948,197 @@ generate_clustering <- function(data.obj, dist.obj, dist.names = c("UniFrac",
   }
   dev.off()
 }
-perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
+
+perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'),
+                                    PermanovaG.dist=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'),
+                                    formula=NULL,  grp.name=NULL, adj.name=NULL, pairwise=F, block.perm=F, strata=NULL, ann='', ...) {
+  # PermanovaG not implemented for block permutation
+  result <- list()
+
+  df <- data.obj$meta.dat
+  if (!is.null(strata)) {
+    if (is.character(strata)) {
+      strata <- df[, strata]
+    }
+  }
+  if (!is.null(formula)) {
+    ind <- apply(df[, gsub("^\\s+|\\s+$", "", strsplit(strsplit(formula, "~")[[1]][2], "\\+")[[1]]), drop=F], 1, function(x) sum(is.na(x))) == 0
+    df <- df[ind, ]
+    if (!is.null(strata)) {
+      strata <- strata[ind]
+    }
+
+    permanova.obj <- list()
+    for (dist.name in dist.names) {
+
+      dist.mat <- as.dist(dist.obj[[dist.name]][ind, ind])
+      if (block.perm == F) {
+        obj <- vegan::adonis(as.formula(paste("dist.mat", formula)), df,  strata=strata, ...)
+      } else {
+        obj <- adonis2(as.formula(paste("dist.mat", formula)), df,  strata=strata, ...)
+      }
+
+      prmatrix(obj$aov.tab)
+      permanova.obj[[dist.name]] <- obj$aov.tab
+
+    }
+    result$permanova.obj <- permanova.obj
+    permanovaG.obj <- NULL
+    if (block.perm == F & !is.null(PermanovaG.dist)) {
+      response <- array(NA, c(sum(ind), sum(ind), length(PermanovaG.dist)), dimnames=list(NULL, NULL, PermanovaG.dist))
+      for (dist.name in PermanovaG.dist) {
+        response[, , dist.name] <- dist.obj[[dist.name]][ind, ind]
+      }
+      obj <- PermanovaG2(as.formula(paste("response", formula)), df,  strata=strata, ...)
+      prmatrix(obj$aov.tab)
+      permanovaG.obj <- obj$aov.tab
+
+      result$permanovaG.obj <- permanovaG.obj
+    }
+    cat("\n")
+    sink()
+  } else {
+    if (pairwise == F) {
+      if (is.null(adj.name)) {
+        formula <- paste('~', grp.name)
+      } else {
+        formula <- 	paste('~', paste(adj.name, collapse='+'), '+', grp.name)
+      }
+
+      ind <- apply(df[, gsub("^\\s+|\\s+$", "", strsplit(strsplit(formula, "~")[[1]][2], "\\+")[[1]]), drop=F], 1, function(x) sum(is.na(x))) == 0
+      df <- df[ind, ]
+      if (!is.null(strata)) {
+        strata <- strata[ind]
+      }
+
+      permanova.obj <- list()
+      for (dist.name in dist.names) {
+
+        dist.mat <- as.dist(dist.obj[[dist.name]][ind, ind])
+        if (block.perm == F) {
+          obj <- vegan::adonis(as.formula(paste("dist.mat", formula)), df,  strata=strata, ...)
+        } else {
+          obj <- adonis2(as.formula(paste("dist.mat", formula)), df,  strata=strata, ...)
+        }
+        prmatrix(obj$aov.tab)
+        permanova.obj[[dist.name]] <- obj$aov.tab
+
+      }
+      result$permanova.obj <- permanova.obj
+      permanovaG.obj <- NULL
+      if (block.perm == F & !is.null(PermanovaG.dist)) {
+        response <- array(NA, c(sum(ind), sum(ind), length(PermanovaG.dist)), dimnames=list(NULL, NULL, PermanovaG.dist))
+        for (dist.name in PermanovaG.dist) {
+          response[, , dist.name] <- dist.obj[[dist.name]][ind, ind]
+        }
+        obj <- PermanovaG2(as.formula(paste("response", formula)), df,  strata=strata, ...)
+        prmatrix(obj$aov.tab)
+        permanovaG.obj <- obj$aov.tab
+        cat("\n")
+        result$permanovaG.obj <- permanovaG.obj
+      }
+
+    } else {
+
+      grp <- factor(df[, grp.name])
+      grp.levels <- levels(grp)
+      grp.nlevels <- nlevels(grp)
+      pmat.all <- NULL
+      rmat.all <- NULL
+      pmat.G <- matrix(NA, grp.nlevels, grp.nlevels)
+      colnames(pmat.G) <- rownames(pmat.G) <- grp.levels
+      for (dist.name in dist.names) {
+        cat(dist.name, " distance: \n")
+        pmat <- matrix(NA, grp.nlevels, grp.nlevels)
+        colnames(pmat) <- rownames(pmat) <- grp.levels
+        rmat <- matrix(NA, grp.nlevels, grp.nlevels)
+        colnames(rmat) <- rownames(rmat) <- grp.levels
+        for (i in 1:(grp.nlevels-1)) {
+          grp.level1 <- grp.levels[i]
+          for (j in (i+1):grp.nlevels) {
+
+            grp.level2 <- grp.levels[j]
+            cat(grp.level1, ' vs ', grp.level2, '\n')
+            ind <- grp %in% c(grp.level1, grp.level2)
+            df2 <- subset(df, ind)
+            df2[, grp.name] <- factor(df2[, grp.name])
+            dist.mat <- dist.obj[[dist.name]][ind, ind]
+            strata2 <- strata[ind]
+
+            if (is.null(adj.name)) {
+              formula <- paste('~', grp.name)
+            } else {
+              formula <- 	paste('~', paste(adj.name, collapse='+'), '+', grp.name)
+            }
+
+            ind2 <- apply(df2[, gsub("^\\s+|\\s+$", "", strsplit(strsplit(formula, "~")[[1]][2], "\\+")[[1]]), drop=F], 1, function(x) sum(is.na(x))) == 0
+            df2 <- df2[ind2, ]
+            dist.mat2 <- as.dist(dist.mat[ind2, ind2])
+            strata2 <- strata2[ind2]
+            if (block.perm == F) {
+              obj <- vegan::adonis(as.formula(paste("dist.mat2", formula)), df2,  strata=strata2, ...)
+            } else {
+              obj <- adonis2(as.formula(paste("dist.mat2", formula)), df2,  strata=strata2,  ...)
+            }
+            prmatrix(obj$aov.tab)
+            cat("\n")
+
+            if (block.perm == F) {
+              pmat[i, j] <- pmat[j, i] <- obj$aov.tab[length(adj.name)+1, 6]
+              rmat[i, j] <- rmat[j, i] <- obj$aov.tab[length(adj.name)+1, 5]
+            } else {
+              pmat[i, j] <- pmat[j, i] <- obj$aov.tab[1, 6]
+              rmat[i, j] <- rmat[j, i] <- obj$aov.tab[1, 5]
+            }
+
+            # PERMANOVA G after last distance
+            if (block.perm == F & !is.null(PermanovaG.dist)) {
+              if (dist.name == dist.names[length(dist.names)]) {
+                cat('\nPERMANOVA G test combining ', paste(PermanovaG.dist, collapse=','), '\n')
+                response <- array(NA, c(sum(ind2), sum(ind2), length(PermanovaG.dist)), dimnames=list(NULL, NULL, PermanovaG.dist))
+                for (dist.name in PermanovaG.dist) {
+                  response[, , dist.name] <- dist.mat[ind2, ind2]
+                }
+                obj <- PermanovaG2(as.formula(paste("response", formula)), df2,  strata=strata2, ...)
+                prmatrix(obj$aov.tab)
+
+                pmat.G[i, j] <- pmat.G[j, i] <- obj$aov.tab[length(adj.name)+1, 'omni.p.value']
+              }
+            }
+          }
+        }
+
+        pmat.all <- rbind(pmat.all, c(dist.name, rep('', grp.nlevels-1)), formatC(pmat), rep("", grp.nlevels))
+        rmat.all <- rbind(rmat.all, c(dist.name, rep('', grp.nlevels-1)), formatC(rmat), rep("", grp.nlevels))
+      }
+
+      result$pmat.all <- pmat.all
+      result$rmat.all <- rmat.all
+      result$pmat.G <- pmat.G
+
+    }
+  }
+  measures <- dist.names
+  tables <- list()
+  tables <- lapply(measures, function(x){
+    print(xtable::xtable(result$permanova.obj[[x]], caption=paste(x, "Permanova")),
+          type="html",
+          html.table.attributes='class="data table table-bordered table-condensed"',
+          caption.placement="top")
+  })
+  G_caption <- paste('PERMANOVA G test combining ', paste(measures, collapse=','))
+  tables[[as.character(length(measures)+1)]] <- print(xtable::xtable(result$permanovaG.obj, caption=G_caption),
+                                                      type="html",
+                                                      html.table.attributes='class="data table table-bordered table-condensed"',
+                                                      caption.placement="top")
+  all <- lapply(tables, paste0)
+  return(htmltools::HTML(as.character(all)))
+
+  #return(result)
+}
+
+
+OLD.perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
                                                                       "GUniFrac", "WUniFrac", "BC"), PermanovaG.dist = c("UniFrac", "GUniFrac",
                                                                                                                          "WUniFrac", "BC"), formula = NULL, grp.name = NULL, adj.name = NULL,
                                    pairwise = F, block.perm = F, strata = NULL, ann = "", ...) {
@@ -916,7 +1166,7 @@ perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
       cat(dist.name, " distance: \n")
       dist.mat <- as.dist(dist.obj[[dist.name]][ind, ind])
       if (block.perm == F) {
-        obj <- adonis(as.formula(paste("dist.mat", formula)), df,
+        obj <- vegan::adonis(as.formula(paste("dist.mat", formula)), df,
                       strata = strata, ...)
       } else {
         obj <- adonis2(as.formula(paste("dist.mat", formula)),
@@ -968,7 +1218,7 @@ perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
         cat(dist.name, " distance: \n")
         dist.mat <- as.dist(dist.obj[[dist.name]][ind, ind])
         if (block.perm == F) {
-          obj <- adonis(as.formula(paste("dist.mat", formula)),
+          obj <- vegan::adonis(as.formula(paste("dist.mat", formula)),
                         df, strata = strata, ...)
         } else {
           obj <- adonis2(as.formula(paste("dist.mat", formula)),
@@ -1044,7 +1294,7 @@ perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
               strata2 <- factor(strata2[ind2])
             }
             if (block.perm == F) {
-              obj <- adonis(as.formula(paste("dist.mat2", formula)),
+              obj <- vegan::adonis(as.formula(paste("dist.mat2", formula)),
                             df2, strata = strata2, ...)
             } else {
               obj <- adonis2(as.formula(paste("dist.mat2", formula)),
@@ -1101,8 +1351,131 @@ perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
   }
   return(invisible(result))
 }
+
+
 # Rev: 2016_12_02, MiKRAT for binary result, add out_type='D'
-perform_mirkat_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
+perform_mirkat_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'),
+                                 grp.name=NULL, adj.name=NULL, pairwise=F,  ann='', ...) {
+
+  # MiRKAT not implemented for correlated data
+  df <- data.obj$meta.dat
+  result <- list()
+  if (pairwise == F) {
+
+    ind <- apply(df[, c(grp.name, adj.name), drop=F], 1, function(x) sum(is.na(x))) == 0
+    df <- df[ind, ]
+
+    grp <- df[, grp.name]
+
+    if (is.character(grp)) {
+      grp <- factor(grp)
+    }
+    # Rev: 2016_12_02
+    if (is.factor(grp)) {
+      if (nlevels(grp) > 2) {
+        stop('Currently MiRKAT only supports binary outcome!')
+      } else {
+        grp <- as.numeric(grp) - 1
+        out_type <- 'D'
+      }
+    } else {
+      out_type <- 'C'
+    }
+    if (!is.null(adj.name)) {
+      # No intercept
+      adj <- model.matrix(~ ., data.frame(df[, adj.name]))
+      # Remove collinear terms
+      qadj <- qr(adj, tol = 1e-07)
+      adj <- adj[, qadj$pivot, drop = FALSE]
+      adj <- adj[, 1:qadj$rank, drop = FALSE]
+      # Remove intercept
+      adj <- adj[, colSums(adj==1) != nrow(adj)]
+    } else {
+      adj <- NULL
+    }
+
+
+    Ks <- list()
+    for (dist.name in dist.names) {
+      Ks[[dist.name]] <- MiRKAT::D2K(dist.obj[[dist.name]][ind, ind])
+    }
+    # Rev: 2016_12_02
+    obj <- MiRKAT::MiRKAT(grp, X=adj, Ks, out_type=out_type)
+
+    result$indiv <- prmatrix(t(obj$indivP))
+    result$omni <- obj$omnibus_p
+
+  } else {
+
+    grp <- factor(df[, grp.name])
+    grp.levels <- levels(grp)
+    grp.nlevels <- nlevels(grp)
+    pmat.G <- matrix(NA, grp.nlevels, grp.nlevels)
+    colnames(pmat.G) <- rownames(pmat.G) <- grp.levels
+    parr <- array(NA, c(grp.nlevels, grp.nlevels, length(dist.names)), dimnames=list(grp.levels, grp.levels, dist.names))
+
+    for (i in 1:(grp.nlevels-1)) {
+      grp.level1 <- grp.levels[i]
+      for (j in (i+1):grp.nlevels) {
+
+        grp.level2 <- grp.levels[j]
+        cat(grp.level1, ' vs ', grp.level2, '\n')
+        ind <- grp %in% c(grp.level1, grp.level2)
+        df2 <- subset(df, ind)
+        df2[, grp.name] <- factor(df2[, grp.name])
+        ind2 <- apply(df2[, c(grp.name, adj.name), drop=F], 1, function(x) sum(is.na(x))) == 0
+        df2 <- df[ind2, ]
+
+        grp2 <- as.numeric(df2[, grp.name]) - 1
+        if (!is.null(adj.name)) {
+          # No intercept
+          adj <- model.matrix(~ ., data.frame(df2[, adj.name]))
+          # Remove collinear terms
+          qadj <- qr(adj, tol = 1e-07)
+          adj <- adj[, qadj$pivot, drop = FALSE]
+          adj <- adj[, 1:qadj$rank, drop = FALSE]
+          # Remove intercept
+          adj <- adj[, colSums(adj==1) != nrow(adj)]
+        } else {
+          adj <- NULL
+        }
+
+        Ks <- list()
+        for (dist.name in dist.names) {
+          Ks[[dist.name]] <- MiRKAT::D2K(dist.obj[[dist.name]][rownames(df2), rownames(df2)])
+        }
+        # Rev: 2016_12_02
+        obj <- MiRKAT::MiRKAT(grp2, X=adj, Ks, out_type='D')
+        pmat.G[i, j] <- pmat.G[j, i] <- obj$omnibus_p
+        parr[i, j, ] <- parr[j, i, ] <- obj$indivP
+
+        result$indiv <- prmatrix(t(obj$indivP))
+
+        result$omni <- obj$omnibus_p
+
+
+      }
+    }
+    pmat.all <- NULL
+    for (dist.name in dist.names) {
+      pmat <- parr[, , dist.name]
+      pmat.all <- rbind(pmat.all, c(dist.name, rep('', grp.nlevels-1)), formatC(pmat), rep("", grp.nlevels))
+    }
+
+    result$pmat.all <- pmat.all
+    result$pmat.G <- pmat.G
+  }
+  mirkat <- cbind(result$indiv, result$omni)
+  colnames(mirkat) =  c("UniFrac", "GUniFrac", "WUniFrac", "BC", "Omnibus")
+  all <- print(xtable::xtable(mirkat, caption=paste("P-values for MiRKAT test combining UniFrac,GUniFrac,WUniFrac,BC"), digits=4),
+               type="html",
+               html.table.attributes='class="data table table-bordered table-condensed"',
+               caption.placement="top")
+  return(htmltools::HTML(as.character(all)))
+}
+
+# Rev: 2016_12_02, MiKRAT for binary result, add out_type='D'
+OLD.perform_mirkat_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
                                                                    "GUniFrac", "WUniFrac", "BC"), grp.name = NULL, adj.name = NULL, pairwise = F,
                                 ann = "", ...) {
   # MiRKAT not implemented for correlated data
@@ -1144,10 +1517,10 @@ perform_mirkat_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
         "\n")
     Ks <- list()
     for (dist.name in dist.names) {
-      Ks[[dist.name]] <- D2K(dist.obj[[dist.name]][ind, ind])
+      Ks[[dist.name]] <- MiRKAT::D2K(dist.obj[[dist.name]][ind, ind])
     }
     # Rev: 2016_12_02
-    obj <- MiRKAT(grp, X = adj, Ks, out_type = out_type)
+    obj <- MiRKAT::MiRKAT(grp, X = adj, Ks, out_type = out_type)
     cat("Individual P value: ")
     prmatrix(t(obj$indivP))
     cat("\nOmnibus P value: ")
@@ -1191,11 +1564,11 @@ perform_mirkat_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
         }
         Ks <- list()
         for (dist.name in dist.names) {
-          Ks[[dist.name]] <- D2K(dist.obj[[dist.name]][rownames(df2),
+          Ks[[dist.name]] <- MiRKAT::D2K(dist.obj[[dist.name]][rownames(df2),
                                                        rownames(df2)])
         }
         # Rev: 2016_12_02
-        obj <- MiRKAT(grp2, X = adj, Ks, out_type = "D")
+        obj <- MiRKAT::MiRKAT(grp2, X = adj, Ks, out_type = "D")
         pmat.G[i, j] <- pmat.G[j, i] <- obj$omnibus_p
         parr[i, j, ] <- parr[j, i, ] <- obj$indivP
         cat("Individual P value: ")
@@ -1219,7 +1592,32 @@ perform_mirkat_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
                              "_pairwiseP.csv"))
   }
 }
-perform_betadisper_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
+
+perform_betadisper_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'), grp.name) {
+  df <- data.obj$meta.dat
+  grp <- df[, grp.name]
+  result <- list()
+  for (dist.name in dist.names) {
+
+    dist.mat <- as.dist(dist.obj[[dist.name]])
+    obj <- vegan::betadisper(dist.mat, grp)
+    result[[dist.name]] <- prmatrix(anova(obj))
+  }
+
+
+  measures <- dist.names
+  tables <- list()
+  tables <- lapply(measures, function(x){
+    print(xtable::xtable(result[[x]], caption=paste(x, "BETADISPER")),
+          type="html",
+          html.table.attributes='class="data table table-bordered table-condensed"',
+          caption.placement="top")
+  })
+  all <- lapply(tables, paste0)
+  return(htmltools::HTML(as.character(all)))
+}
+
+OLD.perform_betadisper_test <- function(data.obj, dist.obj, dist.names = c("UniFrac",
                                                                        "GUniFrac", "WUniFrac", "BC"), grp.name) {
   df <- data.obj$meta.dat
   grp <- df[, grp.name]

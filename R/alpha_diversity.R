@@ -1,6 +1,76 @@
+# New: 2018_03_09 Removing phyloseq dependency and add 'subject' parameter, and remove 'model' parameter
+perform_alpha_test <- function (data.obj, alpha.obj=NULL, rarefy=TRUE, depth=NULL, iter.no=5,
+                                 measures=c('Observed', 'Chao1', 'Shannon', 'InvSimpson'),  model='lm',
+                                 formula=NULL, grp.name=NULL, adj.name=NULL, subject=NULL, ann='', seed=123, ...) {
+  if (is.null(alpha.obj)) {
+    alpha.obj <- generate_alpha_diversity(data.obj,  rarefy=rarefy, depth=depth, iter.no=iter.no, measures=measures, seed=seed)
+
+  } else {
+    if (sum(!(rownames(alpha.obj) %in% rownames(data.obj$meta.dat))) != 0){
+      stop("alpha.obj contains samples not in data.obj!\n")
+    }
+  }
+
+
+  x <- alpha.obj
+  df <- data.obj$meta.dat[rownames(alpha.obj), ]
+
+  if (is.null(subject)) {
+    model <- 'lm'
+  } else {
+    model <- 'lme'
+  }
+
+  result <- list()
+  fitted.obj <- list()
+
+
+  # variables to adjust always come first in anova analyses
+  if (is.null(formula)) {
+    if (is.null(adj.name)) {
+      formula <- paste('~', grp.name)
+    } else {
+      formula <- 	paste('~', paste(adj.name, collapse='+'), '+', grp.name)
+    }
+  }
+
+  for (measure in measures) {
+    cat("Alpha diversity:", measure, "\n")
+    xx <- x[, measure]
+    if (model == 'lm') {
+      cat('Linear model:\n')
+
+      lm.obj <- lm(as.formula(paste('xx ', formula)), df, ...)
+      prmatrix(summary(lm.obj)$coefficients)
+      cat('\nANOVA:\n')
+      print(anova(lm.obj))
+      cat('\n')
+      fitted.obj[[measure]] <- lm.obj
+    }
+    if (model == 'lme') {
+      df$xx <- xx
+      cat('Linear mixed effects model:\n')
+      lm.obj <- lme(as.formula(paste('xx ', formula)), df, method='ML', random=as.formula(paste0(' ~ 1 | ', subject)), ...)
+      prmatrix(summary(lm.obj)$tTable)
+      cat('\nANOVA:\n')
+      print(anova(lm.obj))
+      cat('\n')
+      fitted.obj[[measure]] <- lm.obj
+    }
+    cat("\n")
+  }
+
+  result$fitted.obj <- fitted.obj
+  result$alpha.diversity <- x
+  # Rev: 2016_12_25
+  return(result)
+
+}
+
+
 # Rev: 2016_12_25 Add anova, and record the results Rev: 2018_02_24
 # Remove dependence on Phyloseq
-perform_alpha_test <- function(data.obj, phylo.obj = NULL, rarefy = TRUE,
+OLD.perform_alpha_test <- function(data.obj, phylo.obj = NULL, rarefy = TRUE,
                                depth = NULL, iter.no = 5, measures = c("Observed", "Chao1", "Shannon",
                                                                        "InvSimpson"), model = "lm", formula = NULL, grp.name = NULL, adj.name = NULL,
                                ann = "", seed = 123, ...) {
@@ -102,7 +172,7 @@ generate_alpha_diversity <- function(data.obj, rarefy = TRUE, depth = NULL,
     set.seed(123)
     x <- 0
     for (i in 1:iter.no) {
-      OTU2 <- Rarefy(OTU, depth = depth)$otu.tab.rff
+      OTU2 <- GUniFrac::Rarefy(OTU, depth = depth)$otu.tab.rff
       x <- x + estimate_richness_(OTU2, measures = measures)
     }
     x <- x/iter.no
@@ -216,9 +286,82 @@ generate_alpha_boxplot <- function(data.obj, phylo.obj = NULL, rarefy = TRUE,
     dev.off()
   }
 }
+
+generate_rarefy_curve2 <- function(data.obj, grp.name,
+                                   measures = c("Observed", "Chao1", "Shannon", "InvSimpson"),
+                                   depth = NULL, iter.no = 5, npoint = 10, seed = 123,
+                                   gg.cmd = "theme(legend.justification=c(1,0), legend.position=c(1,0))",
+                                   wid = 5, hei = 5, error = "se"){
+  if (is.null(depth)) {
+    depth <- min(colSums(data.obj$otu.tab))
+  }
+  if (error == "se")
+    k <- 1
+  if (error == "ci")
+    k <- 1.96
+  ind <- colSums(data.obj$otu.tab) >= depth
+  if (sum(!ind) != 0) {
+    cat(sum(!ind), " samples do not have sufficient number of reads!\n")
+    data.obj <- subset_data(data.obj, ind)
+  }
+  df <- data.obj$meta.dat
+  grp <- df[, grp.name]
+  if (is.character(grp)) {
+    grp <- factor(grp)
+  }
+  if (!is.factor(grp)) {
+    stop("Rarefaction curve needs a factor!\n")
+  }
+  res <- NULL
+  incr <- depth%/%npoint
+  for (dep in c(10, incr * (1:npoint))) {
+    x <- generate_alpha_diversity(data.obj, rarefy = TRUE, depth = dep,
+                                  iter.no = iter.no, measures = measures, seed = seed)
+    res <- rbind(res, t(x[, measures, drop = F]))
+  }
+  colnames(res) <- rownames(df)
+
+  res_list <- list()
+
+  for (i in 1:length(measures)) {
+    measure <- measures[i]
+    cat("Measure: ", measure, "\n")
+    res2 <- res[(0:(npoint))*length(measures)+i, , drop=F]
+    m <- t(apply(res2, 1, function(x) tapply(x, grp, mean)))
+    se <- t(apply(res2, 1, function(x) tapply(x, grp, function(y) sd(y)/sqrt(length(y)))))
+    uci <- m+se
+    lci <- m-se
+
+    m <- melt(m)
+    uci <- melt(uci)
+    lci <- melt(lci)
+
+    res2 <- cbind(c(10, incr*(1:npoint)), m[, 2:3], uci[, 3], lci[, 3])
+    colnames(res2) <- c('Depth', 'Group', 'mean', 'max', 'min')
+
+    res2 <- as.data.frame(res2)
+    res2$Group <- factor(res2$Group, levels=levels(grp))
+
+    res_list[[measure]] <- res2
+    ##res2
+
+  }
+  mres_list = melt(res_list, measure.vars=c("mean", "max", "min"))
+  cres_list <- dcast(mres_list, L1 + Group + Depth ~ variable, fun.aggregate=mean)
+  obj <- ggplot(cres_list, aes(x=Depth, y=mean, color=Group, group=Group)) +
+    geom_errorbar(aes(ymin=min, ymax=max), alpha=0.5, width=.25, position=position_dodge(.2)) +
+    geom_line() +
+    geom_point(size=3, shape=21, fill="white") +
+    labs(y="Alpha diversity") +
+    facet_wrap(~ L1, scale="free_y") + theme_bw()
+  return(obj)
+
+
+}
+
 # Rev: 2018_03_09 Removing phyloseq dependency and add 'subject'
 # parameter, and remove 'model' parameter
-generate_rarefy_curve2 <- function(data.obj, grp.name, measures = c("Observed",
+OLD.generate_rarefy_curve2 <- function(data.obj, grp.name, measures = c("Observed",
                                                                     "Chao1", "Shannon", "InvSimpson"), depth = NULL, iter.no = 5, npoint = 10,
                                    seed = 123, ann = "", gg.cmd = "theme(legend.justification=c(1,0), legend.position=c(1,0))",
                                    wid = 5, hei = 5, error = "se") {
@@ -355,8 +498,37 @@ perform_alpha_test2 <- function(data.obj, alpha.obj = NULL, rarefy = TRUE,
   # Rev: 2016_12_25
   return(invisible(result))
 }
+
+
+# Rev: 2016_09_10
+# Rev: 2016_11_28
+# Rev: 2017_04_18
+generate_alpha_boxplot <- function (data.obj, alpha.obj = NULL, rarefy = TRUE,
+                                    depth = NULL, iter.no = 5, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"),
+                                    seed = 123, grp.name, strata = NULL, gg.cmd = NULL, ann = "", subject = NULL,
+                                    p.size = 2.5, l.size = 0.5, hei = NULL, wid = NULL) {
+  # Rev: 2017_08_23
+  if (is.null(alpha.obj)) {
+    alpha.obj <- generate_alpha_diversity(data.obj, rarefy = rarefy,
+                                          depth = depth, iter.no = iter.no, measures = measures, seed = seed)
+  }
+  df <- data.obj$meta.dat[rownames(alpha.obj), ]
+  grp <- df[, grp.name]
+  obj_list <- list()
+  df = data.frame(Value=alpha.obj[, measures], Group=grp)
+  mdf <- melt(df, id="Group")
+  obj <- ggplot(mdf, aes(x=as.factor(Group), y=value, col=as.factor(Group), group=as.factor(Group))) +
+    geom_boxplot(position=position_dodge(width=0.75), outlier.colour = NA) +
+    geom_jitter(alpha=0.6, size=3.0,  position = position_jitter(w = 0.1)) +
+    labs(y="Alpha Diversity", x="Group") +
+    facet_wrap(~ variable, scale="free_y") +
+    theme_bw()
+  return(obj)
+}
+
+
 # New: 2018_03_09 Removing phyloseq dependency
-generate_alpha_boxplot2 <- function(data.obj, alpha.obj = NULL, rarefy = TRUE,
+OLD.generate_alpha_boxplot2 <- function(data.obj, alpha.obj = NULL, rarefy = TRUE,
                                     depth = NULL, iter.no = 5, measures = c("Observed", "Chao1", "Shannon",
                                                                             "InvSimpson"), seed = 123, grp.name, strata = NULL, gg.cmd = NULL,
                                     ann = "", subject = NULL, p.size = 2.5, l.size = 0.5, hei = NULL, wid = NULL) {

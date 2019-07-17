@@ -1,0 +1,149 @@
+---
+title: "Introduction to microbiome analysis using stromboli"
+author: "Stephen Johnson"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+devtools::load_all("./", TRUE)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width=9, fig.height=6
+)
+```
+
+
+#Create Object
+
+Analysis in `stromboli` revolves around the manipulation of data objects. This object typically links together the information in the following files:
+
+* Metadata (tab-delimited text file)
+* BIOM file
+    * Either version 1 or 2 BIOM files should work
+    * Regardless of version, the BIOM file should have taxonomy annotations for all OTUs/ASVs prior to importing
+* Tree file (newick format)
+
+We can create a data object using the biom, tree, and metadata files included with stromboli in `inst/extdata/`:
+
+```{r}
+
+filter.dep <- 2000
+rarefy.dep <- 2000
+
+test_metadata <- system.file("extdata", "mapping.txt", package = "stromboli")
+test_metadata
+test_biom <- system.file("extdata", "constipation.biom", package = "stromboli")
+test_biom
+test_tree <- system.file("extdata", "constipation.tree", package = "stromboli")
+test_tree
+
+data.obj <- load_data(test_biom, test_metadata, tree.file=test_tree)
+
+ind <- rownames(data.obj$meta.dat)[colSums(data.obj$otu.tab) >= filter.dep]
+    
+cat(rownames(data.obj$meta.dat)[colSums(data.obj$otu.tab) < filter.dep], 'excluded due to insufficient reads!\n')
+data.obj <- subset_data(data.obj, ind)
+dist.obj <- construct_distance(data.obj)
+    
+data.obj.rff <- load_data(test_biom, test_metadata, tree.file=test_tree, rff=TRUE, dep=rarefy.dep)
+dist.obj.rff <- construct_distance(data.obj.rff)
+
+#str(data.obj)
+```
+
+#Summary statistics
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+generate_summary_string(data.obj)
+summary_plot(data.obj, type="abundance")
+summary_plot(data.obj, type="depth")
+summary_plot(data.obj, type="prevalence")
+tables <- prev_abund_tables(data.obj)
+head(tables$phy.prev)
+head(tables$phy.abund)
+#generate_taxa_heatmap(data.obj, meta.info=c('Visit'), taxa.levels = c('Phylum', 'Family', 'Genus'), prev=0.10, minp=0.002)
+barplots <- generate_stacked_barplots(data.obj, taxa.level = 'Phylum', grp.name='Visit')
+barplots$aggregate
+barplots$by_sample
+```
+
+#Alpha diversity
+
+Alpha diversity reflects the species richness (number of species present in a sample) and the species evenness (the degree to which species in an environment are found in equal proportions). 
+
+Rarefaction is a technique to estimate alpha diversity. Random sampling from a sample gives a count (or index) representing diversity. Sampling is repeated to a given depth, and the counts are plotted as a rarefaction curve. The sampling depth is likely sufficient when the slope of the rarefaction curve approaches zero, indicating that most of the OTUs have been observed. 
+
+
+```{r}
+library(ggplot2)
+library(reshape2)
+generate_rarefy_curve2(data.obj, grp.name="Visit", measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), depth=10000, iter.no=5)
+alpha.obj <- generate_alpha_diversity(data.obj, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), depth=10000, iter.no=5)
+generate_alpha_boxplot(data.obj, alpha.obj=alpha.obj,  measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), grp.name="Visit", strata=NULL)
+alpha_test <- perform_alpha_test(data.obj, alpha.obj=alpha.obj, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), grp.name="Visit", adj.name=NULL, subject=NULL)
+```
+
+#Beta diversity
+
+Beta diversity determines the shared diversity between bacterial populations in terms of various ecological distances. Different distance metrics reveal distinctive views of community structure. Unweighted, weighted, and Bray-Curtis distances are constructed using the ASV table and the phylogenetic tree. UniFrac distances measure the shared phylogenetic diversity between communities. Unweighted UniFrac distance captures the difference in community in community membership and/or rare and elss abundant lineages while weighted UniFrac distance is more influenced by the change in abundant lineages. Rarefaction is performed on the ASV table before calculating the distances. 
+
+```{r}
+library(ggplot2)
+generate_ordination2(data.obj, dist.obj, grp.name="Visit")
+
+```
+
+###PERMANOVA test
+
+PERMANOVA is a multivariate analysis of variance based on distance matrices and permutation, partitioning distance matrices among sources of variation and fitting linear models to distance matrices. PERMANOVA analysis was performed using the <code>adonis</code> package in R.
+
+```{r}
+permanova <- perform_permanova_test(data.obj, dist.obj, grp.name="Visit")
+permanova
+```
+
+###MiRKAT test
+
+MiRKAT is a kernel-based association test based on ecological distance matrices. MiRKAT produces analytic p-values for individual distance metrics as well as a permutation-based p-value that combines multiple distance metrics, for a more robust and powerful assessment of significance
+```{r}
+#MiRKAT only works for binary variables!
+mirkat <- perform_mirkat_test(data.obj.rff, dist.obj.rff, grp.name="Visit")    
+mirkat
+```
+
+###BETADISPER test
+
+BETADISPER is part of the R <code>vegan</code> package. It is a multivariate analogue of Levene's test for homogeneity of varainces. Non-euclidean distances between objects and group centroids are handled by reducing the original distances to principal coordinates.
+
+```{r}
+betadisper <- perform_betadisper_test(data.obj.rff, dist.obj.rff, grp.name="Visit")
+betadisper
+```
+
+#Taxa diversity
+
+To identify differentially abundant taxa while accommodating covariates (e.g., sequencing batch) and the non-normality of the count data, we use a permutation test in which a regular linear model was fitted, with taxa proportion data as the outcome variable. To reduce the effects of outliers, taxa proportion data is square-root transformed. Statistical significance is assessed using 1,000 permutations with the F-stat as the test statistic. False discovery rate (FDR) control is used to correct for multiple testing, and FDR-adjusted p-values or q-values less than 10% were considered significant. This q-value cutoff was chosen to avoid missing important taxa with small effect sizes and is a significance threshold frequently utilized in human microbiome studies.
+
+```{r}
+library(dplyr)
+library(ggplot2)
+diff.obj <- perform_differential_analysis(data.obj, grp.name="Visit",
+                                          taxa.levels=c('Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'),
+                                          method='perm', mt.method='fdr', 
+                                          block.perm=FALSE, norm = 'GMPR', winsor=TRUE, winsor.qt=0.97,
+                                          cutoff=0.10, prev=0.10, minp=0.002)
+diff_vis <- visualize_differential_analysis(data.obj, diff.obj, grp.name="Visit", taxa.levels=c('Phylum', 'Family', 'Genus'),
+                                            mt.method='fdr', cutoff=0.2049)
+diff_vis
+```
+

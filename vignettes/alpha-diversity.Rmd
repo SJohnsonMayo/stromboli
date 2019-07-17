@@ -1,6 +1,6 @@
 ---
-title: "Vignette Title"
-author: "Vignette Author"
+title: "Alpha diversity analysis in stromboli"
+author: "Stephen Johnson"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -10,10 +10,20 @@ vignette: >
 ---
 
 ```{r setup, include = FALSE}
+devtools::load_all("./", TRUE)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+```
+
+
+```{r}
+data("Constipation")
+generate_rarefy_curve2(data.obj, grp.name=grp.name.c, measures = alpha.measure, depth=rarefy.dep, iter.no=rarefy.iter)
+alpha.obj <- generate_alpha_diversity(data.obj, measures = alpha.measure, depth=rarefy.dep, iter.no=rarefy.iter)
+generate_alpha_boxplot2(data.obj, alpha.obj=alpha.obj,  measures = alpha.measure, grp.name=grp.name.c, strata=strata)
+perform_alpha_test2(data.obj, alpha.obj=alpha.obj, measures = alpha.measure, grp.name=grp.name, adj.name=adj.name, subject=subject)
 ```
 
 Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:

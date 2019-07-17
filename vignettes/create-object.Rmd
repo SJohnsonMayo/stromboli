@@ -1,65 +1,57 @@
 ---
-title: "Vignette Title"
-author: "Vignette Author"
+title: "Creating a microbiome analysis data object"
+author: "Stephen Johnson"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Create object}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
+Analysis in `stromboli` revolves around the manipulation of data objects. This object typically links together the information in the following files:
+
+* Metadata (tab-delimited text file)
+* BIOM file
+    * Either version 1 or 2 BIOM files should work
+    * Regardless of version, the BIOM file should have taxonomy annotations for all OTUs/ASVs prior to importing
+* Tree file (newick format)
+
+We can create a data object using the biom, tree, and metadata files included with stromboli in `inst/extdata/`:
+
 ```{r setup, include = FALSE}
+devtools::load_all("./", TRUE)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
 ```
 
-Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
 
-- Never uses retina figures
-- Has a smaller default figure size
-- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+```{r}
 
-## Vignette Info
+filter.dep <- 2000
+rarefy.dep <- 2000
 
-Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette.
+test_metadata <- system.file("extdata", "mapping.txt", package = "stromboli")
+test_metadata
+test_biom <- system.file("extdata", "constipation.biom", package = "stromboli")
+test_biom
+test_tree <- system.file("extdata", "constipation.tree", package = "stromboli")
+test_tree
 
-## Styles
+data.obj <- load_data(test_biom, test_metadata, tree.file=test_tree)
 
-The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows:
+ind <- rownames(data.obj$meta.dat)[colSums(data.obj$otu.tab) >= filter.dep]
+    
+cat(rownames(data.obj$meta.dat)[colSums(data.obj$otu.tab) < filter.dep], 'excluded due to insufficient reads!\n')
+data.obj <- subset_data(data.obj, ind)
+dist.obj <- construct_distance(data.obj)
+    
+data.obj.rff <- load_data(otu.file, map.file, tree.file, rff=TRUE, dep=rarefy.dep)
+dist.obj.rff <- construct_distance(data.obj.rff)
 
-    output: 
-      rmarkdown::html_vignette:
-        css: mystyles.css
-
-## Figures
-
-The figure sizes have been customised so that you can easily put two images side-by-side. 
-
-```{r, fig.show='hold'}
-plot(1:10)
-plot(10:1)
+str(data.obj)
 ```
 
-You can enable figure captions by `fig_caption: yes` in YAML:
 
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
-
-Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
-
-## More Examples
-
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
-
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
-```
-
-Also a quote using `>`:
-
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))

@@ -871,21 +871,21 @@ generate_taxa_correlationplot <- function(data.obj,  grp.name, subject.name = NU
       if (scale == 'sqrt') {
         # obj1 <- obj1 + scale_y_sqrt(breaks=c(0, 0.001, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0))
         obj1 <- obj1 + scale_y_sqrt(
-          breaks = trans_breaks("sqrt", function(x) x^2),
-          labels = trans_format("sqrt", math_format(.x^2))) +
+          breaks = scales::trans_breaks("sqrt", function(x) x^2),
+          labels = scales::trans_format("sqrt", scales::math_format(.x^2))) +
           scale_x_sqrt(
-            breaks = trans_breaks("sqrt", function(x) x^2),
-            labels = trans_format("sqrt", math_format(.x^2)))
+            breaks = scales::trans_breaks("sqrt", function(x) x^2),
+            labels = scales::trans_format("sqrt", scales::math_format(.x^2)))
       }
 
       # To be revised
       if (scale == 'log') {
         obj1 <- obj1 + scale_y_log10(
-          breaks = trans_breaks("log10", function(x) 10^x),
-          labels = trans_format("log10", math_format(10^.x))) +
+          breaks = scales::trans_breaks("log10", function(x) 10^x),
+          labels = scales::trans_format("log10", scales::math_format(10^.x))) +
           scale_x_log10(
-            breaks = trans_breaks("log10", function(x) 10^x),
-            labels = trans_format("log10", math_format(10^.x)))
+            breaks = scales::trans_breaks("log10", function(x) 10^x),
+            labels = scales::trans_format("log10", scales::math_format(10^.x)))
       }
       if (scale == 'boxcox') {
         obj1 <- obj1 + scale_y_continuous(breaks=c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0), trans=boxcox_trans(1/3)) +
@@ -957,15 +957,15 @@ taxa_barplot_aggregate <- function (prop, df, grp.name, strata=NULL, scale='sqrt
     if (scale == 'sqrt') {
       # obj1 <- obj1 + scale_y_sqrt(breaks=c(0, 0.001, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0))
       obj1 <- obj1 + scale_y_sqrt(
-        breaks = trans_breaks("sqrt", function(x) x^2),
-        labels = trans_format("sqrt", math_format(.x^2)))
+        breaks = scales::trans_breaks("sqrt", function(x) x^2),
+        labels = scales::trans_format("sqrt", scales::math_format(.x^2)))
     }
 
     # To be revised
     if (scale == 'log') {
       obj1 <- obj1 + scale_y_log10(
-        breaks = trans_breaks("log10", function(x) 10^x),
-        labels = trans_format("log10", math_format(10^.x)))
+        breaks = scales::trans_breaks("log10", function(x) 10^x),
+        labels = scales::trans_format("log10", scales::math_format(10^.x)))
     }
     if (scale == 'boxcox') {
       obj1 <- obj1 + scale_y_continuous(breaks=c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0), trans=boxcox_trans(1/3))
@@ -1011,13 +1011,13 @@ taxa_barplot_aggregate <- function (prop, df, grp.name, strata=NULL, scale='sqrt
     if (scale == 'sqrt') {
       # obj1 <- obj1 + scale_y_sqrt(breaks=c(0, 0.001, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0))
       obj1 <- obj1 + scale_y_sqrt(
-        breaks = trans_breaks("sqrt", function(x) x^2),
-        labels = trans_format("sqrt", math_format(.x^2)))
+        breaks = scales::trans_breaks("sqrt", function(x) x^2),
+        labels = scales::trans_format("sqrt", scales::math_format(.x^2)))
     }
     if (scale == 'log') {
       obj1 <- obj1 + scale_y_log10(
-        breaks = trans_breaks("log10", function(x) 10^x),
-        labels = trans_format("log10", math_format(10^.x)))
+        breaks = scales::trans_breaks("log10", function(x) 10^x),
+        labels = scales::trans_format("log10", scales::math_format(10^.x)))
     }
     if (scale == 'boxcox') {
       obj1 <- obj1 + scale_y_continuous(breaks=c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0), trans=boxcox_trans(1/3))
@@ -1068,13 +1068,13 @@ taxa_boxplot_aggregate <- function (prop, df, grp.name, strata=NULL, scale='none
     if (scale == 'sqrt') {
       # obj1 <- obj1 + scale_y_sqrt(breaks=c(0, 0.001, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0))
       obj1 <- obj1 + scale_y_sqrt(
-        breaks = trans_breaks("sqrt", function(x) x^2),
-        labels = trans_format("sqrt", math_format(.x^2)))
+        breaks = scales::trans_breaks("sqrt", function(x) x^2),
+        labels = scales::trans_format("sqrt", scales::math_format(.x^2)))
     }
     if (scale == 'log') {
       obj1 <- obj1 + scale_y_log10(
-        breaks = trans_breaks("log10", function(x) 10^x),
-        labels = trans_format("log10", math_format(10^.x)))
+        breaks = scales::trans_breaks("log10", function(x) 10^x),
+        labels = scales::trans_format("log10", scales::math_format(10^.x)))
     }
     if (scale == 'boxcox') {
       obj1 <- obj1 + scale_y_continuous(breaks=c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0), trans=boxcox_trans(1/3))
@@ -1102,14 +1102,14 @@ taxa_boxplot_aggregate <- function (prop, df, grp.name, strata=NULL, scale='none
     if (scale == 'sqrt') {
       # obj1 <- obj1 + scale_y_sqrt(breaks=c(0, 0.001, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0))
       obj1 <- obj1 + scale_y_sqrt(
-        breaks = trans_breaks("sqrt", function(x) x^2),
-        labels = trans_format("sqrt", math_format(.x^2)))
+        breaks = scales::trans_breaks("sqrt", function(x) x^2),
+        labels = scales::trans_format("sqrt", scales::math_format(.x^2)))
     }
     # To be revised
     if (scale == 'log') {
       obj1 <- obj1 + scale_y_log10(
-        breaks = trans_breaks("log10", function(x) 10^x),
-        labels = trans_format("log10", math_format(10^.x)))
+        breaks = scales::trans_breaks("log10", function(x) 10^x),
+        labels = scales::trans_format("log10", scales::math_format(10^.x)))
     }
     if (scale == 'boxcox') {
       obj1 <- obj1 + scale_y_continuous(breaks=c(0, 0.0001, 0.001, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 1.0), trans=boxcox_trans(1/3))
@@ -1142,7 +1142,7 @@ generate_taxa_biplot <- function (data.obj, taxa, trans='sqrt', grp.name, ann=''
   if (trans == 'rank') prop <- t(apply(prop, 1, rank))
 
   wine.pca <- prcomp(t(prop), scale. = TRUE)
-  g <- ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
+  g <- ggbiplot::ggbiplot(wine.pca, obs.scale = 1, var.scale = 1,
                 groups = grp, ellipse = TRUE, circle = FALSE, ...)
   g <- g + scale_color_discrete(name = '') + theme_bw()
   g <- g + theme(legend.direction = 'horizontal', legend.position = 'top')
@@ -2124,12 +2124,189 @@ perform_differential_analysis_para <- function (data.obj,  grp.name, adj.name=NU
   return(list(pv.list=pv.list, qv.list=qv.list, fc.list=fc.list, fc.uc.list=fc.uc.list, fc.lc.list=fc.lc.list, met.list=met.list))
 }
 
+visualize_differential_analysis <- function (data.obj, diff.obj,  grp.name=NULL, strata=NULL, test='Nonpara', mt.method='fdr', scale='sqrt', cutoff=0.15,
+                                             taxa.levels=c('Phylum', 'Family', 'Genus'), ord=TRUE, eff.type='logP', indivplot=TRUE, colFnsC=NULL, colFnsF=NULL, subject=NULL,
+                                             xsize=10, ann='', hei1=NULL, wid1=NULL, hei2=NULL, wid2=NULL) {
 
+  # uniquefy names
+  # For backward compatibility. Newer version will not need this and below. The old version has 'unclassified' which leads to duplicate names.
+  # Newer version has 'Unclassified'. Case difference.
+
+  # Check whether there is name duplication
+  check.names <- NULL
+  results <- list()
+  obj0 <- diff.obj[[1]]
+  for (level in names(obj0)) {
+    obj <- obj0[[level]]
+    # rownames(obj) <- gsub('unclassified', paste0('Unclassified',substr(level, 1, 1)), rownames(obj))
+    check.names <- c(check.names, rownames(obj))
+  }
+
+  if (sum(table(check.names) >= 2)) {
+    data.obj <- uniquefy_taxa_names(data.obj)
+
+    for (name1 in names(diff.obj)) {
+      obj0 <- diff.obj[[name1]]
+      for (level in names(obj0)) {
+        obj <- obj0[[level]]
+        # rownames(obj) <- gsub('unclassified', paste0('Unclassified',substr(level, 1, 1)), rownames(obj))
+        rownames(obj) <- paste0(rownames(obj), substr(level, 1, 1))
+        obj0[[level]] <- obj
+      }
+      diff.obj[[name1]] <- obj0
+    }
+
+  }
+
+  fc.list <- diff.obj$fc.list
+  qv.list <- diff.obj$qv.list
+  pv.list <- diff.obj$pv.list
+  if (test == 'Para') {
+    fc.lc.list <- diff.obj$fc.lc.list
+    fc.uc.list <- diff.obj$fc.uc.list
+  }
+  df <- data.obj$meta.dat
+  grp <- df[, grp.name]
+
+  ind <- !is.na(grp)
+  data.obj <- subset_data(data.obj, ind)
+  grp <- grp[ind]
+  df <- df[ind, ]
+
+  prop <- NULL
+  eff <- eff.lc <- eff.uc <- NULL
+  taxa.names <- NULL
+  if (is.null(taxa.levels)) {
+    LOIs <- names(qv.list)
+  } else {
+    LOIs <- taxa.levels
+    if (sum(!(taxa.levels %in% names(qv.list)))) {
+      stop('Taxa levels are not contained in differential abundance analysis results!\n')
+    }
+  }
+  for (LOI in LOIs) {
+    pv.vec <- pv.list[[LOI]]
+    fc.vec <- fc.list[[LOI]]
+    #qv.vec <- qvalue(pv.vec[, 1])$qvalues
+    qv.vec <- qv.list[[LOI]]
+
+    if (test == 'Para') {
+      fc.lc.vec <- fc.lc.list[[LOI]]
+      fc.uc.vec <- fc.uc.list[[LOI]]
+    }
+
+    if (mt.method == 'fdr') {
+      taxa.name <- rownames(qv.vec)[qv.vec <= cutoff]
+      taxa.name <- taxa.name[!is.na(taxa.name)]
+    }
+
+    if (mt.method == 'raw') {
+      taxa.name <- rownames(pv.vec)[pv.vec <= cutoff]
+      taxa.name <- taxa.name[!is.na(taxa.name)]
+    }
+
+    if (length(taxa.name) != 0) {
+      prop0 <- data.obj$abund.list[[LOI]]
+      prop0 <- t(t(prop0) / colSums(prop0))
+      prop0 <-  prop0[taxa.name, , drop=F]
+      if (ord == TRUE) {
+        prop0 <- prop0[rev(order(rowMeans(prop0))), , drop=F]
+      }
+      prop <- rbind(prop, prop0)
+      # currently using fold change
+      if (test == 'Para') {
+        eff <- rbind(eff, fc.vec[taxa.name, , drop=F])
+        eff.lc <- rbind(eff.lc, fc.lc.vec[taxa.name, , drop=F])
+        eff.uc <- rbind(eff.uc, fc.uc.vec[taxa.name, , drop=F])
+      } else {
+        if (eff.type == 'LFC') {
+          eff <- c(eff, fc.vec[taxa.name, ])
+        }
+        if (eff.type == 'logP') {
+          eff <- c(eff, sign(fc.vec[taxa.name, ]) * (-log10(pv.vec[taxa.name, ])))
+        }
+      }
+      taxa.names <- c(taxa.names, taxa.name)
+    }
+  }
+  results$taxa.names <- taxa.names
+  if (length(taxa.names) == 0) {
+    cat('No differential taxa! \n')
+  } else {
+    if (length(taxa.names) >= 2) {
+      if (is.null(wid1) | is.null(hei1)) {
+        wid1 <- 7 * ifelse(nrow(prop) / 30 < 1, 1, nrow(prop) / 30)
+        hei1 <- 7
+      }
+
+      if (!is.null(grp.name)) {
+        results$barplot_aggregate <- taxa_barplot_aggregate(prop, df, grp.name, strata, scale, xsize)
+        results$boxplot_aggregate <- taxa_boxplot_aggregate(prop, df, grp.name, strata, scale, xsize)
+      }
+
+      # currently fold change
+      if (test == 'Para') {
+        rownames(eff) <- rownames(eff.lc) <- rownames(eff.uc) <- taxa.names
+        for (k in 1:ncol(eff)) {
+          fold.dat.plot1 <- data.frame(Estimate=eff[, k], LCI=eff.lc[, k], UCI=eff.uc[, k], IV=taxa.names)
+          results$effect_size <- plot_effect_size2(fold.dat.plot1)
+        }
+      } else {
+        if (!is.na(eff[1])) {
+          names(eff) <- taxa.names
+          eff <- eff[!is.na(eff) & is.finite(eff)]
+          eff <- sort(eff)
+          taxa.names2 <- names(eff)
+          if (is.null(wid2) | is.null(hei2)) {
+            hei2 <- 4 + length(taxa.names2) / 20 * 3
+            wid2 <- 6
+          }
+          if (eff.type == 'LFC') {
+            results$effect_size <- plot_effect_size(taxa.names2, eff, levels(grp)[1], levels(grp)[2], ylab='Log2 fold change')
+          }
+          if (eff.type == 'Spearman') {
+            results$effect_size <- plot_effect_size(taxa.names2, eff, levels(grp)[1], levels(grp)[2], ylab='Spearman correlation')
+          }
+          if (eff.type == 'logP') {
+            results$effect_size <- plot_effect_size(taxa.names2, eff, levels(grp)[1], levels(grp)[2], ylab='-log10(P)')
+          }
+        }
+      }
+
+      # create heatmp
+      #			taxa.names2 <- taxa.names[!grepl('unclassified', taxa.names, ignore.case=T)]
+      if (!is.null(grp.name)) {
+
+        results$prop_heatmap <- generate_taxa_heatmap(data.obj, taxa.levels='All', taxa=taxa.names, meta.info=c(grp.name, strata),  ann=paste0(mt.method, '_', cutoff, '_', ann), colFnsC=colFnsC, colFnsF=colFnsF)
+        results$rank_heatmap <-generate_taxa_heatmap(data.obj, taxa.levels='All', taxa=taxa.names, meta.info=c(grp.name, strata), data.type='R', ann=paste0(mt.method, '_', cutoff, '_Rank_', ann), colFnsC=colFnsC, colFnsF=colFnsF)
+        try(
+          results$biplot <- generate_taxa_biplot(data.obj, taxa=taxa.names, trans='sqrt', grp.name, ann=paste0(mt.method, '_', cutoff, '_', ann), varname.size = 1.5)
+        )
+      }
+    }
+    if (!is.null(grp.name)) {
+      # Individual plots
+      if (indivplot == TRUE) {
+        results$taxa_boxplot <- generate_taxa_boxplot(data.obj, grp.name=grp.name, taxa.levels='All', strata = strata, taxa.name=taxa.names, ann=paste0(mt.method, '_', cutoff, '_', ann))
+        if (!is.null(subject)) {
+          generate_taxa_boxplot(data.obj, grp.name=grp.name, taxa.levels='All', strata = strata, taxa.name=taxa.names, subject=subject, ann=paste0(mt.method, '_', cutoff, '_', ann, '_Paired'))
+        }
+        results$taxa_boxplot_binary <- generate_taxa_boxplot(data.obj, grp.name=grp.name, taxa.levels='All', strata = strata, taxa.name=taxa.names, scale='binary', ann=paste0(mt.method, '_', cutoff, '_', ann))
+        results$taxa_barplot <- generate_taxa_barplot(data.obj, grp.name=grp.name, taxa.levels='All', strata = strata, taxa.name=taxa.names, ann=paste0(mt.method, '_', cutoff, '_', ann))
+      }
+
+    }
+  }
+  #if(length(intersect(taxa.levels, c('Phylum', 'Family', 'Genus')))){
+  #  results$cladogram <- make_cladogram(data.obj=data.obj, diff.obj=diff.obj, grp.name=grp.name, mt.method=mt.method, cutoff=cutoff)
+  #}
+  return(results)
+}
 
 # Rev: 2016_11_25 Uniqufy
 # Rev: 2016_04_18 strata
 
-visualize_differential_analysis <- function (data.obj, diff.obj,  grp.name=NULL, strata=NULL, test='Nonpara', mt.method='fdr', scale='sqrt', cutoff=0.15,
+OLD.visualize_differential_analysis <- function (data.obj, diff.obj,  grp.name=NULL, strata=NULL, test='Nonpara', mt.method='fdr', scale='sqrt', cutoff=0.15,
                                              taxa.levels=c('Phylum', 'Family', 'Genus'), ord=TRUE, eff.type='logP', indivplot=TRUE, colFnsC=NULL, colFnsF=NULL, subject=NULL,
                                              xsize=10, ann='', hei1=NULL, wid1=NULL, hei2=NULL, wid2=NULL) {
 

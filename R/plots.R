@@ -1,3 +1,87 @@
+# Rev: 2017_02_19 key alignment modified, rowsep, colsep bug
+# Rev: 2017_12_19 row colors fixed
+generate_taxa_heatmap <- function (data.obj, taxa.levels='Genus', taxa='All', meta.info, sam.ord=NULL, data.type='P',  prev=0.1, minp=0.002,
+                                   row.col.dat='Phyla', phy.no=4, sepwidth=0.01, colsep=NULL, rowsep=NULL, sepcolor='black',
+                                   white='white', colFnsC=NULL, colFnsF=NULL, Rowv=T, Colv=T, dendrogram='both', margins=c(5, 15), in.grid=F,  is.labCol=T, cexCol=1, cexRow=NULL,
+                                   omas=c(1, 1, 1, 8), width=12, height=6, ann='All', return.obj=FALSE, ...) {
+  df <- data.obj$meta.dat
+  prop <- NULL
+  if ('Species' %in% taxa.levels & !('Species' %in% names(data.obj$abund.list))) {
+    data.obj$abund.list[['Species']] <- data.obj$otu.tab
+    rownames(data.obj$abund.list[['Species']]) <- paste0("OTU", rownames(data.obj$otu.tab), ":",
+                                                         data.obj$otu.name[, 'Phylum'], ";", data.obj$otu.name[, 'Genus'])
+  }
+
+  for (LOI in taxa.levels) {
+    cat(LOI, "\n")
+
+    if (LOI == 'All') {
+      if (taxa[1] == 'All') {
+        stop("Please specify the taxa names that will be included in the heatmap!\n")
+      }
+      prop <- NULL
+      for (LOI2 in names(data.obj$abund.list)) {
+        ct <- data.obj$abund.list[[LOI2]]
+        prop0 <- t(t(ct) / colSums(ct))
+        prop <- rbind(prop, prop0[intersect(rownames(prop0), taxa), , drop=FALSE])
+
+      }
+      colnames(prop) <- colnames(prop0)
+      if (nrow(prop) != length(taxa)) {
+        warnings('Some taxa not found in abundance lists! Please check the names!\n')
+      }
+
+    } else {
+      ct <- data.obj$abund.list[[LOI]]
+      prop <- t(t(ct) / colSums(ct))
+
+      if (taxa[1] != 'All') {
+        prop <- prop[taxa, , drop=FALSE]
+      } else {
+        prop <- prop[matrixStats::rowMaxs(prop) > minp & rowSums(prop!=0) > prev*ncol(prop), , drop=FALSE]
+      }
+    }
+
+    # Deal with zeros
+    if (data.type == 'B') {
+      col.scheme <- c("lightyellow", "red")
+      prop[, ] <- as.numeric(prop != 0)
+      breaks <- c(-0.01, 0.01, 1.1)
+    }
+    if (data.type == 'P'){
+      col.scheme = c(white, RColorBrewer::brewer.pal(11, "Spectral"))
+      ind.temp <- prop != 0
+      minp <- min(prop[prop!=0])/1.1
+      prop[prop==0] <- minp
+      prop <- log10(prop)
+      breaks <- c(log10(minp)-0.01, seq(log10(minp)+0.01, 0, len=12))
+    }
+    if (data.type == 'R'){
+      col.scheme <- c(white, colorRampPalette(rev(RColorBrewer::brewer.pal(9, "RdYlBu")))(ncol(prop)-1))
+
+      prop <- t(apply(prop, 1, function(x) {
+        temp <- rank(x[x!=0])
+        s <- (ncol(prop) - 1) / (max(temp) - min(temp))
+        temp <- 1 + (temp - min(temp)) * s
+        x[x!=0] <- temp
+        x
+      }))
+      breaks <- seq(0, ncol(prop), len=ncol(prop)+1)
+    }
+  }
+
+  phy <- sapply(strsplit(rownames(prop), ";"), function(x) x[1])
+
+  obj <- iheatmapr::main_heatmap(prop, colors=col.scheme) %>%
+    iheatmapr::add_row_annotation(phy) %>%
+    iheatmapr::add_col_annotation(as.data.frame(data.obj$meta.dat[,meta.info, drop=FALSE])) %>%
+    iheatmapr::add_row_clustering() %>%
+    iheatmapr::add_col_clustering()
+
+  return(obj)
+
+}
+
 heatmap.3 <- function(x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
                       distfun = dist, hclustfun = hclust, dendrogram = c("both", "row", "column", "none"),
                       symm = FALSE, scale = c("none", "row", "column"), na.rm = TRUE,
@@ -463,7 +547,7 @@ generate_rarefy_curve <- function(data.obj, phylo.obj = NULL, grp.name,
 }
 # Rev: 2017_02_19 key alignment modified, rowsep, colsep bug Rev:
 # 2017_12_19 row colors fixed
-generate_taxa_heatmap <- function(data.obj, taxa.levels = "Genus", taxa = "All",
+OLD.generate_taxa_heatmap <- function(data.obj, taxa.levels = "Genus", taxa = "All",
                                   meta.info, sam.ord = NULL, data.type = "P", prev = 0.1, minp = 0.002,
                                   row.col.dat = "Phyla", phy.no = 4, sepwidth = 0.01, colsep = NULL,
                                   rowsep = NULL, sepcolor = "black", white = "white", colFnsC = NULL,
@@ -480,10 +564,10 @@ generate_taxa_heatmap <- function(data.obj, taxa.levels = "Genus", taxa = "All",
     # colorRampPalette(c('black', 'green')), colorRampPalette(c('black',
     # 'blue'))))
     # https://moderndata.plot.ly/create-colorful-graphs-in-r-with-rcolorbrewer-and-plotly/
-    colFnsC <- c(colorRampPalette(colors = brewer.pal(9, "RdBu")),
-                 colorRampPalette(colors = brewer.pal(9, "PRGn")), colorRampPalette(colors = brewer.pal(9,"RdYlBu")),
-                 colorRampPalette(colors = brewer.pal(9, "RdGy")),
-                 colorRampPalette(colors = brewer.pal(9, "PuOr")))
+    colFnsC <- c(colorRampPalette(colors = RColorBrewer::brewer.pal(9, "RdBu")),
+                 colorRampPalette(colors = RColorBrewer::brewer.pal(9, "PRGn")), colorRampPalette(colors = RColorBrewer::brewer.pal(9,"RdYlBu")),
+                 colorRampPalette(colors = RColorBrewer::brewer.pal(9, "RdGy")),
+                 colorRampPalette(colors = RColorBrewer::brewer.pal(9, "PuOr")))
   }
   if (is.null(colFnsF)) {
     # rainbow3 <- function(x) { rainbow(x + 2)[1:x] }
@@ -496,7 +580,7 @@ generate_taxa_heatmap <- function(data.obj, taxa.levels = "Genus", taxa = "All",
     # colorRampPalette(colors = jet(8)))
     colFnsF <- function(x) {
       if (x <= 6) {
-        return(brewer.pal(7, "Set2")[1:x])
+        return(RColorBrewer::brewer.pal(7, "Set2")[1:x])
       } else {
         return(colorRampPalette(colors = jet(8))(x))
       }
@@ -532,7 +616,7 @@ generate_taxa_heatmap <- function(data.obj, taxa.levels = "Genus", taxa = "All",
       if (taxa[1] != "All") {
         prop <- prop[taxa, , drop = FALSE]
       } else {
-        prop <- prop[rowMaxs(prop) > minp & rowSums(prop != 0) >
+        prop <- prop[matrixStats::rowMaxs(prop) > minp & rowSums(prop != 0) >
                        prev * ncol(prop), , drop = FALSE]
       }
     }
@@ -555,7 +639,7 @@ generate_taxa_heatmap <- function(data.obj, taxa.levels = "Genus", taxa = "All",
     }
     if (data.type == "P") {
       # col.scheme <- c(white, colFunc(50))
-      col.scheme = c(white, brewer.pal(11, "Spectral"))
+      col.scheme = c(white, RColorBrewer::brewer.pal(11, "Spectral"))
       # col.scheme = c(white, colorRampPalette(c('blue', 'yellow',
       # 'red'))(11))
       ind.temp <- prop != 0
@@ -567,7 +651,7 @@ generate_taxa_heatmap <- function(data.obj, taxa.levels = "Genus", taxa = "All",
                                           len = 12))
     }
     if (data.type == "R") {
-      col.scheme <- c(white, colorRampPalette(rev(brewer.pal(9, "RdYlBu")))(ncol(prop) -1))
+      col.scheme <- c(white, colorRampPalette(rev(RColorBrewer::brewer.pal(9, "RdYlBu")))(ncol(prop) -1))
       # col.scheme <- c('white', colorRampPalette(c('green', 'black',
       # 'red'))(ncol(prop)-1))
       prop <- t(apply(prop, 1, function(x) {
@@ -751,11 +835,11 @@ generate_heatmap <- function(data.obj, meta.info, sam.ord = NULL, data.type = "P
     # colorRampPalette(c('black', 'green')), colorRampPalette(c('black',
     # 'blue'))))
     # https://moderndata.plot.ly/create-colorful-graphs-in-r-with-rcolorbrewer-and-plotly/
-    colFunsC <- c(colorRampPalette(colors = brewer.pal(9, "RdBu")),
-                  colorRampPalette(colors = brewer.pal(9, "PRGn")),
-                  colorRampPalette(colors = brewer.pal(9,"RdYlBu")),
-                  colorRampPalette(colors = brewer.pal(9, "RdGy")),
-                  colorRampPalette(colors = brewer.pal(9, "PuOr")))
+    colFunsC <- c(colorRampPalette(colors = RColorBrewer::brewer.pal(9, "RdBu")),
+                  colorRampPalette(colors = RColorBrewer::brewer.pal(9, "PRGn")),
+                  colorRampPalette(colors = RColorBrewer::brewer.pal(9,"RdYlBu")),
+                  colorRampPalette(colors = RColorBrewer::brewer.pal(9, "RdGy")),
+                  colorRampPalette(colors = RColorBrewer::brewer.pal(9, "PuOr")))
   }
   if (is.null(colFnsF)) {
     colFnsF <- function(x) {
@@ -925,6 +1009,27 @@ generate_heatmap <- function(data.obj, meta.info, sam.ord = NULL, data.type = "P
     return(obj)
   }
 }
+
+generate_stacked_barplots <- function(data.obj, taxa.level, grp.name){
+  prop <- prop.table(data.obj$abund.list[[taxa.level]],2)
+  prop.m <- melt(prop[rev(order(rowMeans(prop))),])
+  prop.m$factor1 <- data.obj$meta.dat[match(prop.m$Var2, rownames(data.obj$meta.dat)), grp.name]
+
+  aggregate <- ggplot(prop.m, aes(factor1, value, fill = Var1, key=Var1) ) +
+    geom_bar(stat="identity", position="fill") +
+    guides() +
+    scale_fill_manual(values = colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(unique(prop.m$Var1))))
+
+  by_sample <- ggplot(prop.m, aes(Var2, value, fill = Var1) ) +
+    geom_bar(stat="identity") +
+    guides() + facet_grid(~factor1, scales="free", space="free_x") +
+    scale_fill_manual(values = colorRampPalette(RColorBrewer::brewer.pal(12, "Set3"))(length(unique(prop.m$Var1))))
+
+  list(aggregate=aggregate, by_sample=by_sample)
+}
+
+
+
 # Rev: 2016_06_13 Still need to be revised: Multiple groups, the auto
 # order should look similar for differnt groups; The legends do not
 # work Rev: 2017_04_28 add col.map so the color scheme can be the same
@@ -932,7 +1037,7 @@ generate_heatmap <- function(data.obj, meta.info, sam.ord = NULL, data.type = "P
 # plot and change ordering Rev: 2018_03_15 add par(lwd..)  Rev:
 # 2018_05_31 add return col.map and aggregate the taxa not in col.map
 # into 'Other' Class Rev: 2018_06_07 many colors
-generate_stacked_barplot <- function(data.obj, grp.name = NULL, taxa.levels = c("Phylum", "Family", "Genus"),
+OLD.generate_stacked_barplot <- function(data.obj, grp.name = NULL, taxa.levels = c("Phylum", "Family", "Genus"),
                                      agg.cutoff = 0.005, border = TRUE, order.auto = FALSE,
                                      order.method = "abund", order.taxa = FALSE, cex.names = 0.5, cex.top.lab = 0.75,
                                      separate = FALSE, cex.names2 = 1, indiv = TRUE, aggre = TRUE, hei1 = 6,
