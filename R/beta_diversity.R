@@ -1,3 +1,29 @@
+
+#' Title
+#'
+#' @param data.obj
+#' @param dist.obj
+#' @param dist.names
+#' @param grp.name
+#' @param adj.name
+#' @param emp.lev
+#' @param strata
+#' @param pc.separate
+#' @param pca.method
+#' @param ann
+#' @param sub
+#' @param clab
+#' @param cex.pt
+#' @param ellipse
+#' @param cstar
+#' @param wid
+#' @param hei
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 generate_ordination2 <- function (data.obj, dist.obj, dist.names=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'),
                                   grp.name, adj.name=NULL, emp.lev=NULL, strata=NULL, pc.separate, pca.method='cmd', ann=NULL, sub=NULL,
                                   clab=1.0, cex.pt=1.25, ellipse=T, cstar= 1, wid=900, hei=600, ...) {
@@ -949,6 +975,25 @@ generate_clustering <- function(data.obj, dist.obj, dist.names = c("UniFrac",
   dev.off()
 }
 
+#' Title
+#'
+#' @param data.obj
+#' @param dist.obj
+#' @param dist.names
+#' @param PermanovaG.dist
+#' @param formula
+#' @param grp.name
+#' @param adj.name
+#' @param pairwise
+#' @param block.perm
+#' @param strata
+#' @param ann
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'),
                                     PermanovaG.dist=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'),
                                     formula=NULL,  grp.name=NULL, adj.name=NULL, pairwise=F, block.perm=F, strata=NULL, ann='', ...) {
@@ -1353,7 +1398,22 @@ OLD.perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFr
 }
 
 
-# Rev: 2016_12_02, MiKRAT for binary result, add out_type='D'
+
+#' Title
+#'
+#' @param data.obj
+#' @param dist.obj
+#' @param dist.names
+#' @param grp.name
+#' @param adj.name
+#' @param pairwise
+#' @param ann
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 perform_mirkat_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'),
                                  grp.name=NULL, adj.name=NULL, pairwise=F,  ann='', ...) {
 
@@ -1593,6 +1653,17 @@ OLD.perform_mirkat_test <- function(data.obj, dist.obj, dist.names = c("UniFrac"
   }
 }
 
+#' Title
+#'
+#' @param data.obj
+#' @param dist.obj
+#' @param dist.names
+#' @param grp.name
+#'
+#' @return
+#' @export
+#'
+#' @examples
 perform_betadisper_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'), grp.name) {
   df <- data.obj$meta.dat
   grp <- df[, grp.name]

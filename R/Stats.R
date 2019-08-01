@@ -865,6 +865,37 @@ permanova2 <- function(meta.dat, D, grp.name, adj.name = NULL, strata = NULL,
 # size factor Rev: 2018_03_15 Add winsorization support for permutatin
 # test - default is FALSE Rev: 2018_10_03 TSS size factor calculation
 # is based on specific taxa level
+#' Title
+#'
+#' @param data.obj
+#' @param grp.name
+#' @param adj.name
+#' @param subject
+#' @param taxa.levels
+#' @param method
+#' @param block.perm
+#' @param perm.no
+#' @param norm
+#' @param norm.level
+#' @param intersect.no
+#' @param ct.min
+#' @param transform
+#' @param winsor
+#' @param winsor.qt
+#' @param prev
+#' @param minp
+#' @param medianp
+#' @param cv
+#' @param mt.method
+#' @param cutoff
+#' @param ann
+#' @param seed
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 perform_differential_analysis <- function(data.obj, grp.name, adj.name = NULL,
                                           subject = NULL, taxa.levels = c("Phylum", "Order", "Class", "Family",
                                                                           "Genus", "Species"), method = "perm", block.perm = FALSE, perm.no = 999,

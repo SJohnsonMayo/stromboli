@@ -5,7 +5,7 @@
 \title{Load microbiome data files and create data object}
 \usage{
 load_data(otu.file, map.file, tree.file = NULL, load.map = TRUE,
-  parseFunction = parse_taxonomy_default, version = "Old",
+  parseFunction = phyloseq::parse_taxonomy_greengenes, version = "Old",
   species = TRUE, filter.no = 1, rff = FALSE, dep = NULL,
   norm = "TSS", level = "OTU", intersect.no = 4, winsor = FALSE,
   winsor.qt = 0.97, ko.file = NULL, cog.file = NULL,

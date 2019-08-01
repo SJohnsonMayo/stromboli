@@ -2124,6 +2124,34 @@ perform_differential_analysis_para <- function (data.obj,  grp.name, adj.name=NU
   return(list(pv.list=pv.list, qv.list=qv.list, fc.list=fc.list, fc.uc.list=fc.uc.list, fc.lc.list=fc.lc.list, met.list=met.list))
 }
 
+#' Title
+#'
+#' @param data.obj
+#' @param diff.obj
+#' @param grp.name
+#' @param strata
+#' @param test
+#' @param mt.method
+#' @param scale
+#' @param cutoff
+#' @param taxa.levels
+#' @param ord
+#' @param eff.type
+#' @param indivplot
+#' @param colFnsC
+#' @param colFnsF
+#' @param subject
+#' @param xsize
+#' @param ann
+#' @param hei1
+#' @param wid1
+#' @param hei2
+#' @param wid2
+#'
+#' @return
+#' @export
+#'
+#' @examples
 visualize_differential_analysis <- function (data.obj, diff.obj,  grp.name=NULL, strata=NULL, test='Nonpara', mt.method='fdr', scale='sqrt', cutoff=0.15,
                                              taxa.levels=c('Phylum', 'Family', 'Genus'), ord=TRUE, eff.type='logP', indivplot=TRUE, colFnsC=NULL, colFnsF=NULL, subject=NULL,
                                              xsize=10, ann='', hei1=NULL, wid1=NULL, hei2=NULL, wid2=NULL) {

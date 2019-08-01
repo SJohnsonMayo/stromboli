@@ -1010,6 +1010,20 @@ generate_heatmap <- function(data.obj, meta.info, sam.ord = NULL, data.type = "P
   }
 }
 
+#' Generate stacked barplots
+#'
+#' @param data.obj A data object created by load_data()
+#' @param taxa.level The taxonomic level to use in the plot (e.g., "Phylum", "Family", etc. )
+#' @param grp.name The variable of interest
+#'
+#' @return A list of two barplots: a per-sample barplot and an aggregated barplot
+#' @export
+#'
+#' @examples
+#' data(Constipation)
+#' barplots <- generate_stacked_barplots(data.obj, taxa.level = 'Phylum', grp.name='Visit')
+#' barplots$aggregate
+#' barplots$by_sample
 generate_stacked_barplots <- function(data.obj, taxa.level, grp.name){
   prop <- prop.table(data.obj$abund.list[[taxa.level]],2)
   prop.m <- melt(prop[rev(order(rowMeans(prop))),])

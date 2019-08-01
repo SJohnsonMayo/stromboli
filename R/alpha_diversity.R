@@ -1,4 +1,25 @@
-# New: 2018_03_09 Removing phyloseq dependency and add 'subject' parameter, and remove 'model' parameter
+
+#' Title
+#'
+#' @param data.obj
+#' @param alpha.obj
+#' @param rarefy
+#' @param depth
+#' @param iter.no
+#' @param measures
+#' @param model
+#' @param formula
+#' @param grp.name
+#' @param adj.name
+#' @param subject
+#' @param ann
+#' @param seed
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 perform_alpha_test <- function (data.obj, alpha.obj=NULL, rarefy=TRUE, depth=NULL, iter.no=5,
                                  measures=c('Observed', 'Chao1', 'Shannon', 'InvSimpson'),  model='lm',
                                  formula=NULL, grp.name=NULL, adj.name=NULL, subject=NULL, ann='', seed=123, ...) {
@@ -151,7 +172,23 @@ OLD.perform_alpha_test <- function(data.obj, phylo.obj = NULL, rarefy = TRUE,
   # Rev: 2016_12_25
   return(invisible(result))
 }
-# New: 2018_02_25
+
+
+#' Generate alpha diversity object
+#'
+#' @param data.obj A data object created by load_data()
+#' @param rarefy Perform rarefaction, TRUE or FALSE (Default: TRUE)
+#' @param depth Rarefaction depth
+#' @param iter.no Number of iterations (Default: 5)
+#' @param measures List of alpha diversity measures to include (Default includes "Observed", "Chao1", "Shannon", and "InvSimpson")
+#' @param seed Random seed to use
+#'
+#' @return Data frame containing the alpha diversities for all samples in data.obj
+#' @export
+#'
+#' @examples
+#' data("Constipation")
+#' alpha.obj <- generate_alpha_diversity(data.obj, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), depth=10000, iter.no=5)
 generate_alpha_diversity <- function(data.obj, rarefy = TRUE, depth = NULL,
                                      iter.no = 5, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"),
                                      seed = 123) {
@@ -183,8 +220,29 @@ generate_alpha_diversity <- function(data.obj, rarefy = TRUE, depth = NULL,
   }
   return(x)
 }
-# Rev: 2016_09_10 Rev: 2016_11_28 Rev: 2017_04_18 Rev: 2018_03_06
-# position_jitter(h=0)
+
+
+#' Title
+#'
+#' @param data.obj
+#' @param phylo.obj
+#' @param rarefy
+#' @param depth
+#' @param grp.name
+#' @param strata
+#' @param measures
+#' @param gg.cmd
+#' @param ann
+#' @param subject
+#' @param p.size
+#' @param l.size
+#' @param hei
+#' @param wid
+#'
+#' @return
+#' @export
+#'
+#' @examples
 generate_alpha_boxplot <- function(data.obj, phylo.obj = NULL, rarefy = TRUE,
                                    depth = NULL, grp.name, strata = NULL, measures = c("Observed", "Chao1",
                                                                                        "Shannon", "InvSimpson"), gg.cmd = NULL, ann = "", subject = NULL,
@@ -287,6 +345,25 @@ generate_alpha_boxplot <- function(data.obj, phylo.obj = NULL, rarefy = TRUE,
   }
 }
 
+
+#' Generate rarefaction curve
+#'
+#' @param data.obj A data object created by load_data()
+#' @param grp.name The variable of interest
+#' @param measures A list of diversity measures to use (Default includes "Shannon", "InvSimpson", "Chao1", and "Observed")
+#' @param depth Rarefaction depth
+#' @param iter.no Number of iterations (Optional, default: 5)
+#' @param npoint Number of points to plot (Optional, default: 10)
+#' @param seed Random seed to use
+#' @param gg.cmd Additional ggplot commands to use (Optional)
+#' @param error Type of error, either "se" or "ci" (Default: "se")
+#'
+#' @return Ggplot object containing rarefaction curve for all specified diversity measures
+#' @export
+#'
+#' @examples
+#' data("Constipation")
+#' generate_rarefy_curve2(data.obj, grp.name="Visit", measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), depth=10000, iter.no=5)
 generate_rarefy_curve2 <- function(data.obj, grp.name,
                                    measures = c("Observed", "Chao1", "Shannon", "InvSimpson"),
                                    depth = NULL, iter.no = 5, npoint = 10, seed = 123,

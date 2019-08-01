@@ -851,7 +851,25 @@ winsor_data <- function(data.obj, winsor.qt = 0.97) {
   # data.obj$size.factor <- sf
   return(data.obj)
 }
-# Rev: 2016_11_28, Bray-curtis use normalized data.
+
+
+
+#' Title
+#'
+#' @param data.obj A data object created by load_data()
+#' @param unifrac.file A file containing unifrac distances (Optional, default: NULL)
+#' @param Phylum Phyla to include in the distance calculations (default: All)
+#' @param dist.RData Previously generated distance object which can be loaded into the environment (Optional, default: NULL)
+#' @param save.RData Filename to save distance object to (Optional, default: NULL)
+#' @param filter.no Filter out OTUs with reads below this number (Default: 0)
+#' @param rff Perform rarefaction, true or false(Default: FALSE)
+#' @param dep Rarefaction depth, if performing rarefaction (Default: NULL)
+#' @param seed Seed
+#'
+#' @return Distance object containing UniFrac, WUniFrac, GUniFrac, and Bray-Curtis distances
+#' @export
+#'
+#' @examples
 construct_distance <- function(data.obj, unifrac.file = NULL, Phylum = "All",
                                dist.RData = NULL, save.RData = NULL, filter.no = 0, rff = FALSE, dep = NULL,
                                seed = 1234) {
@@ -919,8 +937,18 @@ outlier_detect <- function(data.obj, dist.obj, min.dep = 2000) {
   samIDs <- colnames(data.obj$otu.tab)[colSums(data.obj$otu.tab) >= 2000]
   return(samIDs)
 }
-# Rev: 2016_09_26 remove empty OTUs/taxa Rev: 2016_12_01 add more
-# logical controls
+
+
+
+#' Subset Data object
+#'
+#' @param data.obj The data object to subset
+#' @param samIDs The list of sample IDs to include in the subsetted object
+#'
+#' @return A subsetted data object containing only the sample IDs in samIDs
+#' @export
+#'
+#' @examples
 subset_data <- function(data.obj, samIDs) {
   # Rev: 2016_1_19 to add error protection Transform logical samIDs into
   # characer samIDs

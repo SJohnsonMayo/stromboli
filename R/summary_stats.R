@@ -1,3 +1,11 @@
+#' Generate summary string
+#'
+#' @param data.obj A data object created by load_data
+#'
+#' @return A character string containing some basic sequencing statistics: the number of samples, median reads per sample, range of reads per sample, number of OTUs/ASVs
+#' @export
+#'
+#' @examples
 generate_summary_string <- function(data.obj){
   otu.tab <- data.obj$otu.tab
   # Sequencing depth
@@ -15,15 +23,17 @@ generate_summary_string <- function(data.obj){
 
 
 
-#' Title
+#' Basic summary plots
 #'
-#' @param data.obj
-#' @param type
+#' @param data.obj Data object created by load_data()
+#' @param type Type of plot to generate, either "abundance", "depth" or "prevalence"
 #'
-#' @return
+#' @return A ggplot object based on the type specified by \code{type}
 #' @export
 
 #' @examples
+#' summary_plot(data.obj, type="abundance")
+#'
 summary_plot <- function(data.obj, type=""){
   otu.tab <- data.obj$otu.tab
   if(type=="abundance"){
@@ -48,6 +58,14 @@ summary_plot <- function(data.obj, type=""){
   obj
 }
 
+#' Prevalence and abundance table generation
+#'
+#' @param data.obj A data object created by load_data()
+#'
+#' @return A list of tables(phy.prev, fam.prev, gen.prev, phy.abund, fam.abund, and gen.abund) containing the prevalences and abundances for all Phyla, Families, and Genera in \code{data.obj}
+#' @export
+#'
+#' @examples
 prev_abund_tables <- function(data.obj){
   sam.abund <- colSums(data.obj$otu.tab)
   phy.abund <- data.obj$abund.list[["Phylum"]]
