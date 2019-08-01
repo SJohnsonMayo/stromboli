@@ -1,28 +1,29 @@
-
-#' Title
+#' Linear/linear mixed effects models for alpha diversity
 #'
-#' @param data.obj
-#' @param alpha.obj
-#' @param rarefy
-#' @param depth
-#' @param iter.no
-#' @param measures
-#' @param model
-#' @param formula
-#' @param grp.name
-#' @param adj.name
-#' @param subject
-#' @param ann
-#' @param seed
-#' @param ...
+#' @param data.obj Data object created by load_data()
+#' @param alpha.obj Alpha diversity object created by generate_alpha_diversity() (Optional)
+#' @param rarefy If alpha.obj is NULL, perform rarefaction (True/False. Default: TRUE)
+#' @param depth Rarefaction depth
+#' @param iter.no Number of iterations for rarefaction
+#' @param measures Alpha diversity measures to include
+#' @param model Type of model, either "lm" or "lme" (Default: "lm")
+#' @param formula Formula string to use for the model (Optional)
+#' @param grp.name Variable of interest
+#' @param adj.name List of variables to adjust for / covariates
+#' @param subject Variable indicating subject
+#' @param seed Random seed
+#' @param ... Additional parameters to supply to lm() or lme()
 #'
-#' @return
+#' @return Model summary and ANOVA results for all metrics specified in \code{measures}
 #' @export
 #'
 #' @examples
+#' data("Constipation")
+#' alpha.obj <- generate_alpha_diversity(data.obj, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), depth=10000, iter.no=5)
+#' alpha_test <- perform_alpha_test(data.obj, alpha.obj=alpha.obj, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), grp.name="Visit", adj.name=NULL, subject=NULL)
 perform_alpha_test <- function (data.obj, alpha.obj=NULL, rarefy=TRUE, depth=NULL, iter.no=5,
                                  measures=c('Observed', 'Chao1', 'Shannon', 'InvSimpson'),  model='lm',
-                                 formula=NULL, grp.name=NULL, adj.name=NULL, subject=NULL, ann='', seed=123, ...) {
+                                 formula=NULL, grp.name=NULL, adj.name=NULL, subject=NULL, seed=123, ...) {
   if (is.null(alpha.obj)) {
     alpha.obj <- generate_alpha_diversity(data.obj,  rarefy=rarefy, depth=depth, iter.no=iter.no, measures=measures, seed=seed)
 
@@ -220,131 +221,6 @@ generate_alpha_diversity <- function(data.obj, rarefy = TRUE, depth = NULL,
   }
   return(x)
 }
-
-
-#' Title
-#'
-#' @param data.obj
-#' @param phylo.obj
-#' @param rarefy
-#' @param depth
-#' @param grp.name
-#' @param strata
-#' @param measures
-#' @param gg.cmd
-#' @param ann
-#' @param subject
-#' @param p.size
-#' @param l.size
-#' @param hei
-#' @param wid
-#'
-#' @return
-#' @export
-#'
-#' @examples
-generate_alpha_boxplot <- function(data.obj, phylo.obj = NULL, rarefy = TRUE,
-                                   depth = NULL, grp.name, strata = NULL, measures = c("Observed", "Chao1",
-                                                                                       "Shannon", "InvSimpson"), gg.cmd = NULL, ann = "", subject = NULL,
-                                   p.size = 2.5, l.size = 0.5, hei = NULL, wid = NULL) {
-  # Rev: 2017_08_23
-  if (is.null(phylo.obj)) {
-    phylo.obj <- phyloseq(otu_table(data.obj$otu.tab, taxa_are_rows = T),
-                          phy_tree(data.obj$tree), tax_table(data.obj$otu.name), sample_data(data.obj$meta.dat))
-  }
-  # To be completed - jetter when strata is not null
-  if (rarefy == TRUE) {
-    if (is.null(depth)) {
-      depth <- min(sample_sums(phylo.obj))
-    } else {
-      if (depth > min(sample_sums(phylo.obj))) {
-        ind <- (sample_sums(phylo.obj) >= depth)
-        cat(sum(!ind), " samples do not have sufficient number of reads!\n")
-        sample_data(phylo.obj) <- sample_data(phylo.obj)[ind, ]
-        data.obj <- subset_data(data.obj, ind)
-      }
-    }
-    phylo.even <- rarefy_even_depth(phylo.obj, depth, rngseed = 12345)
-    x <- estimate_richness(phylo.even, measures = measures)
-  } else {
-    x <- estimate_richness(phylo.obj, measures = measures)
-  }
-  df <- data.obj$meta.dat
-  grp <- df[, grp.name]
-  if (!is.null(subject)) {
-    ID <- df[, subject]
-  }
-  if (is.null(hei) | is.null(wid)) {
-    hei <- 5
-    if (is.null(strata)) {
-      wid <- 5
-    } else {
-      wid <- 5.5
-    }
-  }
-  if (rarefy == T) {
-    pdf(paste0("Alpha_diversity_boxplot_rarefied_", ann, ".pdf"), height = hei,
-        width = wid)
-  } else {
-    pdf(paste0("Alpha_diversity_boxplot_unrarefied_", ann, ".pdf"),
-        height = hei, width = wid)
-  }
-  if (is.null(subject)) {
-    if (is.null(strata)) {
-      for (measure in measures) {
-        cat(measure, "\n")
-        xx <- x[, measure]
-        df2 <- data.frame(Value = xx, Group = grp)
-        dodge <- position_dodge(width = 0.75)
-        obj <- ggplot(df2, aes(x = Group, y = Value, col = Group)) +
-          geom_boxplot(position = dodge, outlier.colour = NA) +
-          geom_jitter(alpha = 0.6, size = 3, position = position_jitter(w = 0.1,
-                                                                        h = 0)) + labs(y = measure) + theme(legend.position = "none")
-        if (!is.null(gg.cmd)) {
-          obj <- obj + eval(parse(text = gg.cmd))
-        }
-        print(obj)
-      }
-    } else {
-      for (measure in measures) {
-        cat(measure, "\n")
-        xx <- x[, measure]
-        grp2 <- df[, strata]
-        df2 <- data.frame(Value = xx, Group = grp, Strata = grp2)
-        dodge <- position_dodge(width = 0.9)
-        obj <- ggplot(df2, aes(x = Strata, y = Value, col = Group,
-                               fill = Group)) + geom_jitter(alpha = 0.6, size = 3, position = position_jitterdodge(dodge.width = 0.9)) +
-          geom_boxplot(position = dodge, outlier.colour = NA, fill = "white",
-                       alpha = 0.6) + labs(y = measure, x = strata)
-        if (!is.null(gg.cmd)) {
-          obj <- obj + eval(parse(text = gg.cmd))
-        }
-        print(obj)
-      }
-    }
-    dev.off()
-  } else {
-    if (is.null(strata)) {
-      for (measure in measures) {
-        cat(measure, "\n")
-        xx <- x[, measure]
-        df2 <- data.frame(Value = xx, Group = grp, subject = ID)
-        dodge <- position_dodge(width = 0.75)
-        obj <- ggplot(df2, aes(x = Group, y = Value, shape = Group,
-                               group = subject)) + geom_point(size = p.size) + geom_line(size = l.size) +
-          labs(y = measure) + theme(legend.position = "none")
-        if (!is.null(gg.cmd)) {
-          obj <- obj + eval(parse(text = gg.cmd))
-        }
-        print(obj)
-      }
-    } else {
-      warning("Stratum is disallowed when subject is specified!\n")
-    }
-    dev.off()
-  }
-}
-
 
 #' Generate rarefaction curve
 #'
@@ -577,13 +453,27 @@ perform_alpha_test2 <- function(data.obj, alpha.obj = NULL, rarefy = TRUE,
 }
 
 
-# Rev: 2016_09_10
-# Rev: 2016_11_28
-# Rev: 2017_04_18
+
+#' Boxplot for alpha diversity
+#'
+#' @param data.obj Data object created by load_data()
+#' @param alpha.obj Alpha diversity object created by generate_alpha_diversity() (Optional)
+#' @param rarefy If alpha.obj is NULL, perform rarefaction (True/False. Default: TRUE)
+#' @param depth Rarefaction depth
+#' @param iter.no Number of iterations for rarefaction
+#' @param measures Alpha diversity measures to include
+#' @param seed Random seed
+#' @param grp.name Variable of interest
+#' @return A ggplot object containing boxplots for all of the alpha diversity measures indicated in \code{measures}
+#' @export
+#'
+#' @examples
+#' data("Constipation")
+#' alpha.obj <- generate_alpha_diversity(data.obj, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), depth=10000, iter.no=5)
+#' generate_alpha_boxplot(data.obj, alpha.obj=alpha.obj,  measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), grp.name="Visit", strata=NULL)
 generate_alpha_boxplot <- function (data.obj, alpha.obj = NULL, rarefy = TRUE,
                                     depth = NULL, iter.no = 5, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"),
-                                    seed = 123, grp.name, strata = NULL, gg.cmd = NULL, ann = "", subject = NULL,
-                                    p.size = 2.5, l.size = 0.5, hei = NULL, wid = NULL) {
+                                    seed = 123, grp.name) {
   # Rev: 2017_08_23
   if (is.null(alpha.obj)) {
     alpha.obj <- generate_alpha_diversity(data.obj, rarefy = rarefy,

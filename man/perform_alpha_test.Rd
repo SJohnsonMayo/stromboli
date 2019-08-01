@@ -2,17 +2,49 @@
 % Please edit documentation in R/alpha_diversity.R
 \name{perform_alpha_test}
 \alias{perform_alpha_test}
-\title{Title}
+\title{Linear/linear mixed effects models for alpha diversity}
 \usage{
 perform_alpha_test(data.obj, alpha.obj = NULL, rarefy = TRUE,
   depth = NULL, iter.no = 5, measures = c("Observed", "Chao1",
   "Shannon", "InvSimpson"), model = "lm", formula = NULL,
-  grp.name = NULL, adj.name = NULL, subject = NULL, ann = "",
-  seed = 123, ...)
+  grp.name = NULL, adj.name = NULL, subject = NULL, seed = 123,
+  ...)
 }
 \arguments{
-\item{...}{}
+\item{data.obj}{Data object created by load_data()}
+
+\item{alpha.obj}{Alpha diversity object created by generate_alpha_diversity() (Optional)}
+
+\item{rarefy}{If alpha.obj is NULL, perform rarefaction (True/False. Default: TRUE)}
+
+\item{depth}{Rarefaction depth}
+
+\item{iter.no}{Number of iterations for rarefaction}
+
+\item{measures}{Alpha diversity measures to include}
+
+\item{model}{Type of model, either "lm" or "lme" (Default: "lm")}
+
+\item{formula}{Formula string to use for the model (Optional)}
+
+\item{grp.name}{Variable of interest}
+
+\item{adj.name}{List of variables to adjust for / covariates}
+
+\item{subject}{Variable indicating subject}
+
+\item{seed}{Random seed}
+
+\item{...}{Additional parameters to supply to lm() or lme()}
+}
+\value{
+Model summary and ANOVA results for all metrics specified in \code{measures}
 }
 \description{
-Title
+Linear/linear mixed effects models for alpha diversity
+}
+\examples{
+data("Constipation")
+alpha.obj <- generate_alpha_diversity(data.obj, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), depth=10000, iter.no=5)
+alpha_test <- perform_alpha_test(data.obj, alpha.obj=alpha.obj, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), grp.name="Visit", adj.name=NULL, subject=NULL)
 }

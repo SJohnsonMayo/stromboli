@@ -2,17 +2,37 @@
 % Please edit documentation in R/alpha_diversity.R
 \name{generate_alpha_boxplot}
 \alias{generate_alpha_boxplot}
-\title{Title}
+\title{Boxplot for alpha diversity}
 \usage{
 generate_alpha_boxplot(data.obj, alpha.obj = NULL, rarefy = TRUE,
   depth = NULL, iter.no = 5, measures = c("Observed", "Chao1",
-  "Shannon", "InvSimpson"), seed = 123, grp.name, strata = NULL,
-  gg.cmd = NULL, ann = "", subject = NULL, p.size = 2.5,
-  l.size = 0.5, hei = NULL, wid = NULL)
+  "Shannon", "InvSimpson"), seed = 123, grp.name)
 }
 \arguments{
-\item{wid}{}
+\item{data.obj}{Data object created by load_data()}
+
+\item{alpha.obj}{Alpha diversity object created by generate_alpha_diversity() (Optional)}
+
+\item{rarefy}{If alpha.obj is NULL, perform rarefaction (True/False. Default: TRUE)}
+
+\item{depth}{Rarefaction depth}
+
+\item{iter.no}{Number of iterations for rarefaction}
+
+\item{measures}{Alpha diversity measures to include}
+
+\item{seed}{Random seed}
+
+\item{grp.name}{Variable of interest}
+}
+\value{
+A ggplot object containing boxplots for all of the alpha diversity measures indicated in \code{measures}
 }
 \description{
-Title
+Boxplot for alpha diversity
+}
+\examples{
+data("Constipation")
+alpha.obj <- generate_alpha_diversity(data.obj, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), depth=10000, iter.no=5)
+generate_alpha_boxplot(data.obj, alpha.obj=alpha.obj,  measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), grp.name="Visit", strata=NULL)
 }
