@@ -2,15 +2,34 @@
 % Please edit documentation in R/beta_diversity.R
 \name{perform_mirkat_test}
 \alias{perform_mirkat_test}
-\title{Title}
+\title{Perform MiRKAT test}
 \usage{
 perform_mirkat_test(data.obj, dist.obj, dist.names = c("UniFrac",
   "GUniFrac", "WUniFrac", "BC"), grp.name = NULL, adj.name = NULL,
   pairwise = F, ann = "", ...)
 }
 \arguments{
-\item{...}{}
+\item{data.obj}{Data object created by load_data()}
+
+\item{dist.obj}{Distance object created by construct_distance()}
+
+\item{dist.names}{Distance metrics to include in PERMANOVA test. Default includes "UniFrac", "GUniFrac", "WUniFrac", and "BC"}
+
+\item{grp.name}{Variable of interest}
+
+\item{adj.name}{List of variables to adjust for / covariates}
+
+\item{pairwise}{Perform pairwise analysis (T/F, Default: F)}
+
+\item{...}{Additional parameters to pass to MiRKAT}
+}
+\value{
+Table containing results from MiRKAT test
 }
 \description{
-Title
+Perform MiRKAT test
+}
+\examples{
+data("Constipation")
+mirkat <- perform_mirkat_test(data.obj.rff, dist.obj.rff, grp.name="Visit")
 }

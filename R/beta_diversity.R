@@ -1390,21 +1390,22 @@ OLD.perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFr
 
 
 
-#' Title
+#' Perform MiRKAT test
 #'
-#' @param data.obj
-#' @param dist.obj
-#' @param dist.names
-#' @param grp.name
-#' @param adj.name
-#' @param pairwise
-#' @param ann
-#' @param ...
+#' @param data.obj Data object created by load_data()
+#' @param dist.obj Distance object created by construct_distance()
+#' @param dist.names Distance metrics to include in PERMANOVA test. Default includes "UniFrac", "GUniFrac", "WUniFrac", and "BC"
+#' @param grp.name Variable of interest
+#' @param adj.name List of variables to adjust for / covariates
+#' @param pairwise Perform pairwise analysis (T/F, Default: F)
+#' @param ... Additional parameters to pass to MiRKAT
 #'
-#' @return
+#' @return Table containing results from MiRKAT test
 #' @export
 #'
 #' @examples
+#' data("Constipation")
+#' mirkat <- perform_mirkat_test(data.obj.rff, dist.obj.rff, grp.name="Visit")
 perform_mirkat_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'),
                                  grp.name=NULL, adj.name=NULL, pairwise=F,  ann='', ...) {
 
@@ -1644,17 +1645,19 @@ OLD.perform_mirkat_test <- function(data.obj, dist.obj, dist.names = c("UniFrac"
   }
 }
 
-#' Title
+#' Perform Betadispersion test
 #'
-#' @param data.obj
-#' @param dist.obj
-#' @param dist.names
-#' @param grp.name
+#' @param data.obj Data object created by load_data()
+#' @param dist.obj Distance object created by construct_distance()
+#' @param dist.names Distance metrics to include in PERMANOVA test. Default includes "UniFrac", "GUniFrac", "WUniFrac", and "BC"
+#' @param grp.name Variable of interest
 #'
-#' @return
+#' @return A table containing the results of the BETADISPER test
 #' @export
 #'
 #' @examples
+#' data("Constipation")
+#' betadisper <- perform_betadisper_test(data.obj.rff, dist.obj.rff, grp.name="Visit")
 perform_betadisper_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'), grp.name) {
   df <- data.obj$meta.dat
   grp <- df[, grp.name]

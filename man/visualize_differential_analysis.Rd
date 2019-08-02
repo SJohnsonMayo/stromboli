@@ -2,18 +2,52 @@
 % Please edit documentation in R/differential_analysis.R
 \name{visualize_differential_analysis}
 \alias{visualize_differential_analysis}
-\title{Title}
+\title{Visualize differential analysis results}
 \usage{
 visualize_differential_analysis(data.obj, diff.obj, grp.name = NULL,
   strata = NULL, test = "Nonpara", mt.method = "fdr",
   scale = "sqrt", cutoff = 0.15, taxa.levels = c("Phylum", "Family",
   "Genus"), ord = TRUE, eff.type = "logP", indivplot = TRUE,
-  colFnsC = NULL, colFnsF = NULL, subject = NULL, xsize = 10,
-  ann = "", hei1 = NULL, wid1 = NULL, hei2 = NULL, wid2 = NULL)
+  subject = NULL)
 }
 \arguments{
-\item{wid2}{}
+\item{data.obj}{Data object created by load_data()}
+
+\item{diff.obj}{Differential abundance object created by perform_differential_analysis()}
+
+\item{grp.name}{Variable of interest}
+
+\item{strata}{Variable indicating strata (Optional, default: NULL)}
+
+\item{test}{Type of test, either "Para" or "Nonpara" (Default: "Nonpara")}
+
+\item{mt.method}{Type of multiple testing method used when creating \code{diff.obj}}
+
+\item{scale}{Scaling method used when creating \code{diff.obj}}
+
+\item{cutoff}{Q-value cutoff used when creating \code{diff.obj}}
+
+\item{taxa.levels}{Taxa levels to visualize (Default includes "Phylum", "Family", and "Genus")}
+
+\item{ord}{Order by mean proportion, TRUE/FALSE (Default: TRUE)}
+
+\item{eff.type}{Effect type (Default: "logP")}
+
+\item{indivplot}{Generate plots for individual samples, TRUE/FALSE (Default: TRUE)}
+
+\item{subject}{Variable indicating subject}
+}
+\value{
+A list of differential abundance plots (boxplots, barplots, heatmaps, biplots, effect size plots)
 }
 \description{
-Title
+Visualize differential analysis results
+}
+\examples{
+data("Constipation")
+diff.obj <- perform_differential_analysis(data.obj, grp.name="Visit",
+                                          taxa.levels=c('Phylum', 'Class', 'Order', 'Family', 'Genus', 'Species'),
+                                          method='perm', mt.method='fdr',
+                                          block.perm=FALSE, norm = 'GMPR')
+diff_vis <- visualize_differential_analysis(data.obj, diff.obj, grp.name="Visit", taxa.levels=c('Phylum', 'Family', 'Genus'), mt.method='fdr', cutoff=0.2049)
 }
