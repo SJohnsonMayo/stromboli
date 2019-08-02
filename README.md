@@ -1,4 +1,4 @@
-# Stromboli: 
+# Stromboli 
 
 Statistically Robust Methods for Microbiome Analysis
 
