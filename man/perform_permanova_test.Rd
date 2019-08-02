@@ -2,17 +2,41 @@
 % Please edit documentation in R/beta_diversity.R
 \name{perform_permanova_test}
 \alias{perform_permanova_test}
-\title{Title}
+\title{Perform PERMANOVA test}
 \usage{
 perform_permanova_test(data.obj, dist.obj, dist.names = c("UniFrac",
-  "GUniFrac", "WUniFrac", "BC"), PermanovaG.dist = c("UniFrac",
   "GUniFrac", "WUniFrac", "BC"), formula = NULL, grp.name = NULL,
   adj.name = NULL, pairwise = F, block.perm = F, strata = NULL,
-  ann = "", ...)
+  ...)
 }
 \arguments{
-\item{...}{}
+\item{data.obj}{A data object created by load_data()}
+
+\item{dist.obj}{A distance object created by construct_distance()}
+
+\item{dist.names}{Distance metrics to include in PERMANOVA test. Default includes "UniFrac", "GUniFrac", "WUniFrac", and "BC"}
+
+\item{formula}{(Optional) formula string to provide to model}
+
+\item{grp.name}{Variable of interest}
+
+\item{adj.name}{List of variables to adjust for / covariate}
+
+\item{pairwise}{Perform pairwise analysis (T/F, default: F)}
+
+\item{block.perm}{Perform block permutation (T/F, default: F)}
+
+\item{strata}{Variable indicating strata}
+
+\item{...}{Additional parameters which can be passed to adonis() function call}
+}
+\value{
+Table of PERMANOVA test results
 }
 \description{
-Title
+Perform PERMANOVA test
+}
+\examples{
+data("Constipation")
+permanova <- perform_permanova_test(data.obj, dist.obj, grp.name="Visit")
 }

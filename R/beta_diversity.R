@@ -1,32 +1,23 @@
 
-#' Title
+#' Generate ordination plots for beta diversity analysis
 #'
-#' @param data.obj
-#' @param dist.obj
-#' @param dist.names
-#' @param grp.name
-#' @param adj.name
-#' @param emp.lev
-#' @param strata
-#' @param pc.separate
-#' @param pca.method
-#' @param ann
-#' @param sub
-#' @param clab
-#' @param cex.pt
-#' @param ellipse
-#' @param cstar
-#' @param wid
-#' @param hei
-#' @param ...
+#' @param data.obj Data object created by load_data()
+#' @param dist.obj Distance object created by construct_distance()
+#' @param dist.names List of distance metrics to include in plot. Default includes "UniFrac", "GUniFrac", "WUniFrac", and "BC"
+#' @param grp.name Variable of interest
+#' @param adj.name List of variables to adjust for / covariates
+#' @param emp.lev Levels of grp.name to exclude (Optional)
+#' @param strata Variable indicating strata
+#' @param pca.method PCA method, either "cmd" or "nmds" (Default: "cmd")
 #'
-#' @return
+#' @return A ggplot object containing ordination plots for all distance measures indicated by \code{dist.names}
 #' @export
 #'
 #' @examples
+#' data("Constipation")
+#' generate_ordination2(data.obj, dist.obj, grp.name="Visit")
 generate_ordination2 <- function (data.obj, dist.obj, dist.names=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'),
-                                  grp.name, adj.name=NULL, emp.lev=NULL, strata=NULL, pc.separate, pca.method='cmd', ann=NULL, sub=NULL,
-                                  clab=1.0, cex.pt=1.25, ellipse=T, cstar= 1, wid=900, hei=600, ...) {
+                                  grp.name, adj.name=NULL, emp.lev=NULL, strata=NULL, pca.method='cmd') {
   # Implment strata
   # To be completed, add continuous case
   strata0 <- strata
@@ -975,29 +966,29 @@ generate_clustering <- function(data.obj, dist.obj, dist.names = c("UniFrac",
   dev.off()
 }
 
-#' Title
+#' Perform PERMANOVA test
 #'
-#' @param data.obj
-#' @param dist.obj
-#' @param dist.names
-#' @param PermanovaG.dist
-#' @param formula
-#' @param grp.name
-#' @param adj.name
-#' @param pairwise
-#' @param block.perm
-#' @param strata
-#' @param ann
-#' @param ...
+#' @param data.obj A data object created by load_data()
+#' @param dist.obj A distance object created by construct_distance()
+#' @param dist.names Distance metrics to include in PERMANOVA test. Default includes "UniFrac", "GUniFrac", "WUniFrac", and "BC"
+#' @param formula (Optional) formula string to provide to model
+#' @param grp.name Variable of interest
+#' @param adj.name List of variables to adjust for / covariate
+#' @param pairwise Perform pairwise analysis (T/F, default: F)
+#' @param block.perm Perform block permutation (T/F, default: F)
+#' @param strata Variable indicating strata
+#' @param ... Additional parameters which can be passed to adonis() function call
 #'
-#' @return
+#' @return Table of PERMANOVA test results
 #' @export
 #'
 #' @examples
+#' data("Constipation")
+#' permanova <- perform_permanova_test(data.obj, dist.obj, grp.name="Visit")
 perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'),
-                                    PermanovaG.dist=c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC'),
-                                    formula=NULL,  grp.name=NULL, adj.name=NULL, pairwise=F, block.perm=F, strata=NULL, ann='', ...) {
+                                    formula=NULL,  grp.name=NULL, adj.name=NULL, pairwise=F, block.perm=F, strata=NULL,  ...) {
   # PermanovaG not implemented for block permutation
+  PermanovaG.dist <- c('UniFrac', 'GUniFrac', 'WUniFrac', 'BC')
   result <- list()
 
   df <- data.obj$meta.dat
