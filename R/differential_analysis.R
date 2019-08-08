@@ -2673,8 +2673,8 @@ visualize_differential_analysis <- function (data.obj, diff.obj,  grp.name=NULL,
     if (length(taxa.names) >= 2) {
 
       if (!is.null(grp.name)) {
-        results$barplot_aggregate <- taxa_barplot_aggregate(prop, df, grp.name, strata, scale, xsize)
-        results$boxplot_aggregate <- taxa_boxplot_aggregate(prop, df, grp.name, strata, scale, xsize)
+        results$barplot_aggregate <- taxa_barplot_aggregate(prop, df, grp.name, strata, scale)
+        results$boxplot_aggregate <- taxa_boxplot_aggregate(prop, df, grp.name, strata, scale)
       }
 
       # currently fold change

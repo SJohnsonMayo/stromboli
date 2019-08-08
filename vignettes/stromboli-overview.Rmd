@@ -89,7 +89,7 @@ library(ggplot2)
 library(reshape2)
 generate_rarefy_curve2(data.obj, grp.name="Visit", measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), depth=10000, iter.no=5)
 alpha.obj <- generate_alpha_diversity(data.obj, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), depth=10000, iter.no=5)
-generate_alpha_boxplot(data.obj, alpha.obj=alpha.obj,  measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), grp.name="Visit", strata=NULL)
+generate_alpha_boxplot(data.obj, alpha.obj=alpha.obj,  measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), grp.name="Visit")
 alpha_test <- perform_alpha_test(data.obj, alpha.obj=alpha.obj, measures = c("Observed", "Chao1", "Shannon", "InvSimpson"), grp.name="Visit", adj.name=NULL, subject=NULL)
 ```
 
