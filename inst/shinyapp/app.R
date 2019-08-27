@@ -14,6 +14,7 @@ library(networkD3)
 library(ggnetwork)
 library(tidygraph)
 library(shinyjs)
+library(phyloseq)
 library(stromboli)
 options(shiny.maxRequestSize = 100*1024^2)
 shinyApp(
