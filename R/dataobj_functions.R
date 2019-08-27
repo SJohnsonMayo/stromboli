@@ -990,8 +990,16 @@ subset_data <- function(data.obj, samIDs) {
   }
   return(data.obj)
 }
-# Rev: 2016_12_01 add more logical controls Rev: 2016_02_01 fix one
-# error
+
+#' Subset distance object
+#'
+#' @param data.obj The distance object to subset
+#' @param samIDs The list of sample IDs to include in the subsetted object
+#'
+#' @return A subsetted distance object containing only the sample IDs in samIDs
+#' @export
+#'
+#' @examples
 subset_dist <- function(dist.obj, samIDs) {
   # Rev: 2016_1_19 to add error protection Transform logical samIDs into
   # character samIDs
