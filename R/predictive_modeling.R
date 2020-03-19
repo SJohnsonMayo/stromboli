@@ -1,3 +1,89 @@
+cvs <- function(data.obj, grp.name){
+  count <- t(data.obj$abund.list$Genus)
+  depth <- sapply(strsplit(colnames(count), "\\."), length)
+  x <- count[, !grepl("unclassified", colnames(count)) & colSums(count != 0) >= 1]
+  x[x == 0] <- 0.5
+  x <- x/rowSums(x)
+  z <- log(x)
+
+  demo <- data.obj$meta.dat
+  y <- demo[, grp.name][match(rownames(count), rownames(demo))]
+
+  dyn.load(system.file("cvs", "cdmm.so", package="stromboli"))
+  source(system.file("cvs", "cdmm.R", package="stromboli"))
+
+  set.seed(23)
+  n <- length(y); ntrn <- 70; nrep <- 100
+  pe <- numeric(nrep); pe.lasso <- numeric(nrep)
+
+  for (i in 1:nrep) {
+    itrn <- sample(n, ntrn)
+    itst <- setdiff(1:n, itrn)
+    ans <- cv.cdmm(y[itrn], z[itrn, ], refit=TRUE)
+    bet <- ans$bet; int <- ans$int
+    pe[i] <- mean((y[itst] - int - z[itst, ] %*% bet)^2)
+    ans <- cv.cdmm(y[itrn], z[itrn, ], refit=TRUE, constr=FALSE)
+    bet.lasso <- ans$bet; int.lasso <- ans$int
+    pe.lasso[i] <- mean((y[itst] - int.lasso - z[itst, ] %*% bet.lasso)^2)
+    cat("Rep.", i, "done.\n")
+  }
+
+  set.seed(43)
+  p <- ncol(z);
+  nboot <- 100
+  bet.bcv <- matrix(, p, nboot)
+  bet.bcv.lasso <- matrix(, p, nboot)
+  for (i in 1:nboot) {
+    bootid <- sample(1:length(y), replace=TRUE)
+    bet.bcv[, i] <- cv.cdmm(y[bootid], z[bootid, ], refit=TRUE)$bet
+    bet.bcv.lasso[, i] <- cv.cdmm(y[bootid], z[bootid, ], refit=TRUE, constr=FALSE)$bet
+    cat("Boot.", i, "done.\n")
+  }
+  stab.prob <- stab.cdmm(y, z)$prob
+  stab.prob.lasso <- stab.cdmm(y, z, constr=FALSE)$prob
+
+  bcv.prob <- rowMeans(bet.bcv != 0)
+  bcv.prob.lasso <- rowMeans(bet.bcv.lasso != 0)
+
+  isel <- bcv.prob >= 0.7
+  data.frame(genus=colnames(z)[isel], bcv.prob=bcv.prob[isel], stab.prob=stab.prob[isel])
+
+  isel.lasso <- bcv.prob.lasso >= 0.7
+  data.frame(genus=colnames(z)[isel.lasso], bcv.prob=bcv.prob.lasso[isel.lasso], stab.prob=stab.prob.lasso[isel.lasso])
+
+  bcv.sgn <- rbind(rowMeans(bet.bcv > 0), rowMeans(bet.bcv < 0))
+  taxa <- matrix(unlist(strsplit(colnames(z), "\\;")), 2)
+  phyla <- taxa[1, ]; genera <- taxa[2, ]
+
+  ##plotting
+  bcv.sgn.m <- as.matrix(bcv.sgn)
+  rownames(bcv.sgn.m) <- c("Positive", "Negative")
+  colnames(bcv.sgn.m) <- genera
+  bcv.sgn.m <- data.table(bcv.sgn.m, keep.rownames = TRUE)
+  bcv.sgn.m <- melt(bcv.sgn.m, id.vars = "rn")
+  bcv.sgn.m$phyla <- taxa[match(bcv.sgn.m$variable, taxa)-1]
+  ggplot(bcv.sgn.m) + geom_bar(aes(x=variable, fill=rn, y=value), stat="identity", alpha = .4) + facet_wrap(~phyla, scales = "free_x")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                                                                                                                                             panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  ans <- cdmm(y, z[, isel], 0)
+  (bet <- as.numeric(ans$sol))
+  int <- ans$int
+  fitted <- int + drop(z[, isel] %*% bet)
+  ran <- range(c(y, fitted))
+
+  df <- data.frame(observed=y, fitted=fitted)
+
+
+  ggplot(df, aes(x=observed, y=fitted)) +
+    geom_point() +
+    geom_abline(intercept=0, slope=1, linetype="dashed") +
+    labs(y=paste0("Fitted ", grp.name), x = paste0("Observed ", grp.name)) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+
+}
+
+
 randomForestTest <- function(x, y, perm.no = 999, ...) {
   iris.rf <- randomForest(x = x, y = y, importance = FALSE)
   to1 <- mean(abs((as.numeric(y) - 1) - predict(iris.rf, type = "prob")[,
