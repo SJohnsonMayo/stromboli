@@ -1120,6 +1120,42 @@ taxa_boxplot_aggregate <- function (prop, df, grp.name, strata=NULL, scale='none
 
 }
 
+gmd_biplot <- function(data.obj, dist.obj, grp.name, components=4){
+  results = list()
+  library(GMDecomp)
+  tab <- data.obj$abund.list[["Genus"]]
+  #tab <- data.obj$otu.tab
+  delta = dist.obj$WUniFrac ^2
+  N = dim(tab)[2]
+  P = dim(tab)[1]
+  one_N = t(t(rep(1, N)))
+  J = diag(1, N) - (1/N) * one_N %*% t(one_N)
+  H = -(1/2) * J %*% delta %*% J
+
+  test_eig <- eigen(H)
+  pos_eig <- which(test_eig$values>=0)
+  eig_vals <- diag(test_eig$values[pos_eig])
+  eig_vec <- test_eig$vectors[,pos_eig]
+
+  H_star = eig_vec %*% eig_vals %*% t(eig_vec)
+
+  test.gmd <- GMD(X=as.matrix(clr(t(prop.table(tab+1,2)))),
+                  H=H_star,
+                  Q=diag(1, P),
+                  K=components)
+  gmd.order = order(rowSums(test.gmd$V[,1:2]^2), decreasing=T)
+  plot.index = gmd.order[1:3]
+
+  results$screeplot <- screeplot(test.gmd)
+
+  results$biplot <- biplot(fit=test.gmd, index=plot.index, names=plot.names,
+                           sample.col=data.obj$meta.dat[,grp.name],
+                           arrow.col='grey50')
+  return(results)
+
+}
+
+
 generate_taxa_biplot <- function (data.obj, taxa, trans='sqrt', grp.name, ann='', ...) {
 
   grp <- data.obj$meta.dat[, grp.name]
