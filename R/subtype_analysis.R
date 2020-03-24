@@ -1,3 +1,38 @@
+
+##Adapted from tutorial at https://microbiome.github.io/tutorials/DMM.html
+dirichlet_multinomial <- function(data.obj, components=3){
+  count <- as.matrix(t(data.obj$abund.list$Genus))
+  fit <- mclapply(1:components, dmn, count = count, verbose=TRUE)
+  lplc <- sapply(fit, laplace)
+  aic  <- sapply(fit, AIC)
+  bic  <- sapply(fit, BIC)
+
+  best <- fit[[which.min(lplc)]]
+
+  ass <- apply(mixture(best), 1, which.max)
+
+  p <- list()
+
+  for (k in seq(ncol(fitted(best)))) {
+    d <- melt(fitted(best))
+    colnames(d) <- c("OTU", "cluster", "value")
+    d <- subset(d, cluster == k) %>%
+      # Arrange OTUs by assignment strength
+      arrange(value) %>%
+      mutate(OTU = factor(OTU, levels = unique(OTU))) %>%
+      # Only show the most important drivers
+      filter(abs(value) > quantile(abs(value), 0.8))
+
+    p[k] <- ggplot(d, aes(x = OTU, y = value)) +
+      geom_bar(stat = "identity") +
+      coord_flip() +
+      labs(title = paste("Top drivers: community type", k))
+    print(p[k])
+  }
+  return(p)
+}
+
+
 perform_cluster_analysis <- function(data.obj, dist.obj, dist.name = c("UniFrac"),
                                      k.best = NULL, method = "pam", stat = "gap", grp.name = NULL, adj.name = NULL,
                                      subject = NULL, ann = "", seed = 1234) {
