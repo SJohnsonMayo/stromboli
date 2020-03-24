@@ -1,7 +1,7 @@
 
 ##Adapted from tutorial at https://microbiome.github.io/tutorials/DMM.html
-dirichlet_multinomial <- function(data.obj, components=3){
-  count <- as.matrix(t(data.obj$abund.list$Genus))
+dirichlet_multinomial <- function(data.obj, components=3, level="Genus"){
+  count <- as.matrix(t(data.obj$abund.list[[level]]))
   fit <- mclapply(1:components, dmn, count = count, verbose=TRUE)
   lplc <- sapply(fit, laplace)
   aic  <- sapply(fit, AIC)
