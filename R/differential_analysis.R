@@ -1139,7 +1139,7 @@ gmd_biplot <- function(data.obj, dist.obj, grp.name, components=4){
 
   H_star = eig_vec %*% eig_vals %*% t(eig_vec)
 
-  test.gmd <- GMD(X=as.matrix(clr(t(prop.table(tab+1,2)))),
+  test.gmd <- GMDecomp::GMD(X=as.matrix(compositions::clr(t(prop.table(tab+1,2)))),
                   H=H_star,
                   Q=diag(1, P),
                   K=components)

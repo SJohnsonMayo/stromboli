@@ -8,7 +8,7 @@ Authors@R: c(
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
 Depends: R (>= 3.4.2)
-Imports: MASS, ggbiplot, ape, vegan, pscl, glmmADMB, aod, nlme, MiRKAT, matrixStats, gplots, scales, ggplot2, GUniFrac, rpart, qvalue, DESeq2, lme4, phangorn, phyloseq, RColorBrewer, squash, rhdf5, biom, reshape, randomForest, Boruta, ade4, Daim, rlocal, xtable
+Imports: MASS, ggbiplot, ape, vegan, pscl, glmmADMB, aod, nlme, MiRKAT, matrixStats, gplots, scales, ggplot2, GUniFrac, rpart, qvalue, DESeq2, lme4, phangorn, phyloseq, RColorBrewer, squash, rhdf5, biom, reshape, randomForest, Boruta, ade4, xtable, data.table, ggplot2, GMDecomp, DirichletMultinomial, magrittr, compositions
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
@@ -17,4 +17,4 @@ BugReports: http://github.com/SJohnsonMayo/stromboli/issues
 Suggests: knitr,
     rmarkdown
 VignetteBuilder: knitr
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.2

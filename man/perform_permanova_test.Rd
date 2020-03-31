@@ -4,10 +4,18 @@
 \alias{perform_permanova_test}
 \title{Perform PERMANOVA test}
 \usage{
-perform_permanova_test(data.obj, dist.obj, dist.names = c("UniFrac",
-  "GUniFrac", "WUniFrac", "BC"), formula = NULL, grp.name = NULL,
-  adj.name = NULL, pairwise = F, block.perm = F, strata = NULL,
-  ...)
+perform_permanova_test(
+  data.obj,
+  dist.obj,
+  dist.names = c("UniFrac", "GUniFrac", "WUniFrac", "BC"),
+  formula = NULL,
+  grp.name = NULL,
+  adj.name = NULL,
+  pairwise = F,
+  block.perm = F,
+  strata = NULL,
+  ...
+)
 }
 \arguments{
 \item{data.obj}{A data object created by load_data()}

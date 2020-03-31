@@ -1,5 +1,5 @@
-cvs <- function(data.obj, grp.name){
-  count <- t(data.obj$abund.list$Genus)
+cvs <- function(data.obj, grp.name, level="Genus", bootstrap.num = 100){
+  count <- t(data.obj$abund.list[[level]])
   depth <- sapply(strsplit(colnames(count), "\\."), length)
   x <- count[, !grepl("unclassified", colnames(count)) & colSums(count != 0) >= 1]
   x[x == 0] <- 0.5
@@ -16,21 +16,21 @@ cvs <- function(data.obj, grp.name){
   n <- length(y); ntrn <- 70; nrep <- 100
   pe <- numeric(nrep); pe.lasso <- numeric(nrep)
 
-  for (i in 1:nrep) {
-    itrn <- sample(n, ntrn)
-    itst <- setdiff(1:n, itrn)
-    ans <- cv.cdmm(y[itrn], z[itrn, ], refit=TRUE)
-    bet <- ans$bet; int <- ans$int
-    pe[i] <- mean((y[itst] - int - z[itst, ] %*% bet)^2)
-    ans <- cv.cdmm(y[itrn], z[itrn, ], refit=TRUE, constr=FALSE)
-    bet.lasso <- ans$bet; int.lasso <- ans$int
-    pe.lasso[i] <- mean((y[itst] - int.lasso - z[itst, ] %*% bet.lasso)^2)
-    cat("Rep.", i, "done.\n")
-  }
+  #for (i in 1:nrep) {
+ #   itrn <- sample(n, ntrn)
+  #  itst <- setdiff(1:n, itrn)
+  #  ans <- cv.cdmm(y[itrn], z[itrn, ], refit=TRUE)
+  #  bet <- ans$bet; int <- ans$int
+  #  pe[i] <- mean((y[itst] - int - z[itst, ] %*% bet)^2)
+  #  ans <- cv.cdmm(y[itrn], z[itrn, ], refit=TRUE, constr=FALSE)
+  #  bet.lasso <- ans$bet; int.lasso <- ans$int
+  #  pe.lasso[i] <- mean((y[itst] - int.lasso - z[itst, ] %*% bet.lasso)^2)
+  #  cat("Rep.", i, "done.\n")
+#  }
 
   set.seed(43)
   p <- ncol(z);
-  nboot <- 100
+  nboot <- bootstrap.num
   bet.bcv <- matrix(, p, nboot)
   bet.bcv.lasso <- matrix(, p, nboot)
   for (i in 1:nboot) {
@@ -59,27 +59,32 @@ cvs <- function(data.obj, grp.name){
   bcv.sgn.m <- as.matrix(bcv.sgn)
   rownames(bcv.sgn.m) <- c("Positive", "Negative")
   colnames(bcv.sgn.m) <- genera
-  bcv.sgn.m <- data.table(bcv.sgn.m, keep.rownames = TRUE)
-  bcv.sgn.m <- melt(bcv.sgn.m, id.vars = "rn")
+  bcv.sgn.m <- data.table::data.table(bcv.sgn.m, keep.rownames = TRUE)
+  bcv.sgn.m <- data.table::melt(bcv.sgn.m, id.vars = "rn")
   bcv.sgn.m$phyla <- taxa[match(bcv.sgn.m$variable, taxa)-1]
-  ggplot(bcv.sgn.m) + geom_bar(aes(x=variable, fill=rn, y=value), stat="identity", alpha = .4) + facet_wrap(~phyla, scales = "free_x")  + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                                                                                                                                             panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  results <- list()
+  results$taxa_plot <- ggplot2::ggplot(bcv.sgn.m) +
+    ggplot2::geom_bar(ggplot2::aes(x=variable, fill=rn, y=value), stat="identity", alpha = .4) +
+    ggplot2::facet_wrap(~phyla, scales = "free_x")  +
+    ggplot2::theme(panel.grid.major = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(),
+                   panel.background = ggplot2::element_blank(), axis.line = ggplot2::element_line(colour = "black"))
   ans <- cdmm(y, z[, isel], 0)
   (bet <- as.numeric(ans$sol))
   int <- ans$int
   fitted <- int + drop(z[, isel] %*% bet)
   ran <- range(c(y, fitted))
 
-  df <- data.frame(observed=y, fitted=fitted)
 
+  results$df <- data.frame(observed=y, fitted=fitted)
 
-  ggplot(df, aes(x=observed, y=fitted)) +
-    geom_point() +
-    geom_abline(intercept=0, slope=1, linetype="dashed") +
-    labs(y=paste0("Fitted ", grp.name), x = paste0("Observed ", grp.name)) +
-    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-          panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  results$fitted_plot <- ggplot2::ggplot(df, ggplot2::aes(x=observed, y=fitted)) +
+    ggplot2::geom_point() +
+    ggplot2::geom_abline(intercept=0, slope=1, linetype="dashed") +
+    ggplot2::labs(y=paste0("Fitted ", grp.name), x = paste0("Observed ", grp.name)) +
+    ggplot2::theme(panel.grid.major = ggplot2::element_blank(), panel.grid.minor = ggplot2::element_blank(),
+                   panel.background = ggplot2::element_blank(), axis.line = ggplot2::element_line(colour = "black"))
 
+  return(results)
 
 }
 

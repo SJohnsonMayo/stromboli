@@ -6,27 +6,56 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+devtools::load_all("./", TRUE)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
 ```
 
 ## Compositional Variable Selection using the CVS package
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Compositional variable selection is performed using the `cvs` function in `predictive_modeling.R`. The function is implemented as described in [Lin et al., 2014](https://doi.org/10.1093/biomet/asu031). The link to the package itself is only available [here](http://www.math.pku.edu.cn/teachers/linw/software/cvs.zip), but the files bundled with `stromboli` should work on OS X / *nix-based systems. If using Windows, please use the author's link. 
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+We've adapted the example code from `bmi.R` included with `cvs` to work with `stromboli` data objects and tried to make it as simple as possible to use. Simply call `cvs()` with your data object, variable of interest, and taxonomic level, and you will get the selected variables (as a table, and as a plot) 
 
-```{r cars}
-summary(cars)
+```{r}
+data("Constipation")
+
+#Note this can take a few minutes to run! Use a higher boostrap.num than 10!
+cvs_results <- cvs(data.obj, grp.name="BMI", level="Genus", bootstrap.num=10)
+cvs_results$df
+
+cvs_results$taxa_plot
+
+cvs_results$fitted_plot
+
+
 ```
 
 ## Subtype modeling using the DirichletMultinomial package
 
-You can also embed plots, for example:
+Performing subtype analysis using `stromboli` is also quite simple using the `dirichlet_multinomial` function. Our implementation was adapted from the [`microbiome` package tutorial](https://microbiome.github.io/tutorials/DMM.html) to work with `stromboli` data objects. 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+data("Constipation")
+
+DM_results <- dirichlet_multinomial(data.obj, components=3, level="Genus")
+DM_results[1]
+DM_results[2]
+DM_results[3]
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
 ## Beta diversity analysis using the GMD-biplot
+
+In `stromboli` we also include a wrapper function for the GMD Biplot as included in the `GMDecomp` package and described in [Wang et al, 2019](https://msystems.asm.org/content/4/6/e00504-19). Our `gmd_biplot` function wraps around the `GMDecomp::GMD()` function and takes care of all the matrix operations described in the paper but not done by that function. `gmd_biplot` returns a screeplot in addition to the actual GMD biplot.  
+
+```{r}
+data("Constipation")
+gmd_plot <- gmd_biplot(data.obj, dist.obj, grp.name="Visit", components=4)
+
+gmd_plot$screeplot
+
+gmd_plot$biplot
+```

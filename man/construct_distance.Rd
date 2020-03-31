@@ -4,9 +4,17 @@
 \alias{construct_distance}
 \title{Title}
 \usage{
-construct_distance(data.obj, unifrac.file = NULL, Phylum = "All",
-  dist.RData = NULL, save.RData = NULL, filter.no = 0, rff = FALSE,
-  dep = NULL, seed = 1234)
+construct_distance(
+  data.obj,
+  unifrac.file = NULL,
+  Phylum = "All",
+  dist.RData = NULL,
+  save.RData = NULL,
+  filter.no = 0,
+  rff = FALSE,
+  dep = NULL,
+  seed = 1234
+)
 }
 \arguments{
 \item{data.obj}{A data object created by load_data()}

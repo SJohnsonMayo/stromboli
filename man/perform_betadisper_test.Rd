@@ -4,8 +4,12 @@
 \alias{perform_betadisper_test}
 \title{Perform Betadispersion test}
 \usage{
-perform_betadisper_test(data.obj, dist.obj, dist.names = c("UniFrac",
-  "GUniFrac", "WUniFrac", "BC"), grp.name)
+perform_betadisper_test(
+  data.obj,
+  dist.obj,
+  dist.names = c("UniFrac", "GUniFrac", "WUniFrac", "BC"),
+  grp.name
+)
 }
 \arguments{
 \item{data.obj}{Data object created by load_data()}

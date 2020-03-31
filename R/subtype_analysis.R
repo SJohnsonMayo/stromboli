@@ -1,5 +1,16 @@
 
 ##Adapted from tutorial at https://microbiome.github.io/tutorials/DMM.html
+#' Title
+#'
+#' @param data.obj A stromboli data object
+#' @param components The number of dirichlet components / community types
+#' @param level Taxonomic level of interest
+#'
+#' @return A list of plots showing the taxonomic drivers of each component
+#' @export
+#' @importFrom magrittr %>%
+#' @import dplyr
+#' @examples
 dirichlet_multinomial <- function(data.obj, components=3, level="Genus"){
   count <- as.matrix(t(data.obj$abund.list[[level]]))
   fit <- mclapply(1:components, dmn, count = count, verbose=TRUE)
@@ -14,7 +25,7 @@ dirichlet_multinomial <- function(data.obj, components=3, level="Genus"){
   p <- list()
 
   for (k in seq(ncol(fitted(best)))) {
-    d <- melt(fitted(best))
+    d <- data.table::melt(fitted(best))
     colnames(d) <- c("OTU", "cluster", "value")
     d <- subset(d, cluster == k) %>%
       # Arrange OTUs by assignment strength
@@ -23,11 +34,11 @@ dirichlet_multinomial <- function(data.obj, components=3, level="Genus"){
       # Only show the most important drivers
       filter(abs(value) > quantile(abs(value), 0.8))
 
-    p[k] <- ggplot(d, aes(x = OTU, y = value)) +
-      geom_bar(stat = "identity") +
-      coord_flip() +
-      labs(title = paste("Top drivers: community type", k))
-    print(p[k])
+    p[[k]] <- ggplot2::ggplot(d, ggplot2::aes(x = OTU, y = value)) +
+      ggplot2::geom_bar(stat = "identity") +
+      ggplot2::coord_flip() +
+      ggplot2::labs(title = paste("Top drivers: community type", k))
+    #print(p[k])
   }
   return(p)
 }

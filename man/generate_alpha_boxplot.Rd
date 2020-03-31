@@ -4,9 +4,16 @@
 \alias{generate_alpha_boxplot}
 \title{Boxplot for alpha diversity}
 \usage{
-generate_alpha_boxplot(data.obj, alpha.obj = NULL, rarefy = TRUE,
-  depth = NULL, iter.no = 5, measures = c("Observed", "Chao1",
-  "Shannon", "InvSimpson"), seed = 123, grp.name)
+generate_alpha_boxplot(
+  data.obj,
+  alpha.obj = NULL,
+  rarefy = TRUE,
+  depth = NULL,
+  iter.no = 5,
+  measures = c("Observed", "Chao1", "Shannon", "InvSimpson"),
+  seed = 123,
+  grp.name
+)
 }
 \arguments{
 \item{data.obj}{Data object created by load_data()}

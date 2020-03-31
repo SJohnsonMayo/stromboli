@@ -4,11 +4,21 @@
 \alias{visualize_differential_analysis}
 \title{Visualize differential analysis results}
 \usage{
-visualize_differential_analysis(data.obj, diff.obj, grp.name = NULL,
-  strata = NULL, test = "Nonpara", mt.method = "fdr",
-  scale = "sqrt", cutoff = 0.15, taxa.levels = c("Phylum", "Family",
-  "Genus"), ord = TRUE, eff.type = "logP", indivplot = TRUE,
-  subject = NULL)
+visualize_differential_analysis(
+  data.obj,
+  diff.obj,
+  grp.name = NULL,
+  strata = NULL,
+  test = "Nonpara",
+  mt.method = "fdr",
+  scale = "sqrt",
+  cutoff = 0.15,
+  taxa.levels = c("Phylum", "Family", "Genus"),
+  ord = TRUE,
+  eff.type = "logP",
+  indivplot = TRUE,
+  subject = NULL
+)
 }
 \arguments{
 \item{data.obj}{Data object created by load_data()}

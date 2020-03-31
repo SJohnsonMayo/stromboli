@@ -4,11 +4,21 @@
 \alias{perform_alpha_test}
 \title{Linear/linear mixed effects models for alpha diversity}
 \usage{
-perform_alpha_test(data.obj, alpha.obj = NULL, rarefy = TRUE,
-  depth = NULL, iter.no = 5, measures = c("Observed", "Chao1",
-  "Shannon", "InvSimpson"), model = "lm", formula = NULL,
-  grp.name = NULL, adj.name = NULL, subject = NULL, seed = 123,
-  ...)
+perform_alpha_test(
+  data.obj,
+  alpha.obj = NULL,
+  rarefy = TRUE,
+  depth = NULL,
+  iter.no = 5,
+  measures = c("Observed", "Chao1", "Shannon", "InvSimpson"),
+  model = "lm",
+  formula = NULL,
+  grp.name = NULL,
+  adj.name = NULL,
+  subject = NULL,
+  seed = 123,
+  ...
+)
 }
 \arguments{
 \item{data.obj}{Data object created by load_data()}

@@ -4,9 +4,14 @@
 \alias{generate_alpha_diversity}
 \title{Generate alpha diversity object}
 \usage{
-generate_alpha_diversity(data.obj, rarefy = TRUE, depth = NULL,
-  iter.no = 5, measures = c("Observed", "Chao1", "Shannon",
-  "InvSimpson"), seed = 123)
+generate_alpha_diversity(
+  data.obj,
+  rarefy = TRUE,
+  depth = NULL,
+  iter.no = 5,
+  measures = c("Observed", "Chao1", "Shannon", "InvSimpson"),
+  seed = 123
+)
 }
 \arguments{
 \item{data.obj}{A data object created by load_data()}

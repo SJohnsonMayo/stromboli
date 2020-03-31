@@ -4,11 +4,19 @@
 \alias{generate_rarefy_curve2}
 \title{Generate rarefaction curve}
 \usage{
-generate_rarefy_curve2(data.obj, grp.name, measures = c("Observed",
-  "Chao1", "Shannon", "InvSimpson"), depth = NULL, iter.no = 5,
-  npoint = 10, seed = 123,
+generate_rarefy_curve2(
+  data.obj,
+  grp.name,
+  measures = c("Observed", "Chao1", "Shannon", "InvSimpson"),
+  depth = NULL,
+  iter.no = 5,
+  npoint = 10,
+  seed = 123,
   gg.cmd = "theme(legend.justification=c(1,0), legend.position=c(1,0))",
-  wid = 5, hei = 5, error = "se")
+  wid = 5,
+  hei = 5,
+  error = "se"
+)
 }
 \arguments{
 \item{data.obj}{A data object created by load_data()}

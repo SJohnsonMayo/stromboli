@@ -4,9 +4,16 @@
 \alias{perform_mirkat_test}
 \title{Perform MiRKAT test}
 \usage{
-perform_mirkat_test(data.obj, dist.obj, dist.names = c("UniFrac",
-  "GUniFrac", "WUniFrac", "BC"), grp.name = NULL, adj.name = NULL,
-  pairwise = F, ann = "", ...)
+perform_mirkat_test(
+  data.obj,
+  dist.obj,
+  dist.names = c("UniFrac", "GUniFrac", "WUniFrac", "BC"),
+  grp.name = NULL,
+  adj.name = NULL,
+  pairwise = F,
+  ann = "",
+  ...
+)
 }
 \arguments{
 \item{data.obj}{Data object created by load_data()}

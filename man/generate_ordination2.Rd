@@ -4,9 +4,16 @@
 \alias{generate_ordination2}
 \title{Generate ordination plots for beta diversity analysis}
 \usage{
-generate_ordination2(data.obj, dist.obj, dist.names = c("UniFrac",
-  "GUniFrac", "WUniFrac", "BC"), grp.name, adj.name = NULL,
-  emp.lev = NULL, strata = NULL, pca.method = "cmd")
+generate_ordination2(
+  data.obj,
+  dist.obj,
+  dist.names = c("UniFrac", "GUniFrac", "WUniFrac", "BC"),
+  grp.name,
+  adj.name = NULL,
+  emp.lev = NULL,
+  strata = NULL,
+  pca.method = "cmd"
+)
 }
 \arguments{
 \item{data.obj}{Data object created by load_data()}

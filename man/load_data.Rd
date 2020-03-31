@@ -4,13 +4,32 @@
 \alias{load_data}
 \title{Load microbiome data files and create data object}
 \usage{
-load_data(otu.file, map.file, tree.file = NULL, load.map = TRUE,
-  parseFunction = phyloseq::parse_taxonomy_greengenes, version = "Old",
-  species = TRUE, filter.no = 1, rff = FALSE, dep = NULL,
-  norm = "TSS", level = "OTU", intersect.no = 4, winsor = FALSE,
-  winsor.qt = 0.97, ko.file = NULL, cog.file = NULL,
-  ko.ann.file = NULL, meta.sep = "\\t", quote = "\\"",
-  comment = "", read.gg = FALSE, seed = 1234, ...)
+load_data(
+  otu.file,
+  map.file,
+  tree.file = NULL,
+  load.map = TRUE,
+  parseFunction = phyloseq::parse_taxonomy_greengenes,
+  version = "Old",
+  species = TRUE,
+  filter.no = 1,
+  rff = FALSE,
+  dep = NULL,
+  norm = "TSS",
+  level = "OTU",
+  intersect.no = 4,
+  winsor = FALSE,
+  winsor.qt = 0.97,
+  ko.file = NULL,
+  cog.file = NULL,
+  ko.ann.file = NULL,
+  meta.sep = "\\t",
+  quote = "\\"",
+  comment = "",
+  read.gg = FALSE,
+  seed = 1234,
+  ...
+)
 }
 \arguments{
 \item{otu.file}{A taxonomy-annotated BIOM file (either HDF5 or old format is fine)}

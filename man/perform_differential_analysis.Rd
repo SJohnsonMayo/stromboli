@@ -4,14 +4,32 @@
 \alias{perform_differential_analysis}
 \title{Perform differential analysis}
 \usage{
-perform_differential_analysis(data.obj, grp.name, adj.name = NULL,
-  subject = NULL, taxa.levels = c("Phylum", "Order", "Class", "Family",
-  "Genus", "Species"), method = "perm", block.perm = FALSE,
-  perm.no = 999, norm = "GMPR", norm.level = "Species",
-  intersect.no = 4, ct.min = 2, transform = "sqrt", winsor = FALSE,
-  winsor.qt = 0.97, prev = 0.1, minp = 0.002, medianp = NULL,
-  cv = NULL, mt.method = "fdr", cutoff = 0.15, ann = "",
-  seed = 123, ...)
+perform_differential_analysis(
+  data.obj,
+  grp.name,
+  adj.name = NULL,
+  subject = NULL,
+  taxa.levels = c("Phylum", "Order", "Class", "Family", "Genus", "Species"),
+  method = "perm",
+  block.perm = FALSE,
+  perm.no = 999,
+  norm = "GMPR",
+  norm.level = "Species",
+  intersect.no = 4,
+  ct.min = 2,
+  transform = "sqrt",
+  winsor = FALSE,
+  winsor.qt = 0.97,
+  prev = 0.1,
+  minp = 0.002,
+  medianp = NULL,
+  cv = NULL,
+  mt.method = "fdr",
+  cutoff = 0.15,
+  ann = "",
+  seed = 123,
+  ...
+)
 }
 \arguments{
 \item{data.obj}{Data object created by load_data()}
