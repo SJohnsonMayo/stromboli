@@ -1014,7 +1014,7 @@ perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 
         obj <- adonis2(as.formula(paste("dist.mat", formula)), df,  strata=strata, ...)
       }
 
-      prmatrix(obj$aov.tab)
+      #prmatrix(obj$aov.tab)
       permanova.obj[[dist.name]] <- obj$aov.tab
 
     }
@@ -1026,13 +1026,13 @@ perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 
         response[, , dist.name] <- dist.obj[[dist.name]][ind, ind]
       }
       obj <- PermanovaG2(as.formula(paste("response", formula)), df,  strata=strata, ...)
-      prmatrix(obj$aov.tab)
+      #prmatrix(obj$aov.tab)
       permanovaG.obj <- obj$aov.tab
 
       result$permanovaG.obj <- permanovaG.obj
     }
-    cat("\n")
-    sink()
+    #cat("\n")
+    #sink()
   } else {
     if (pairwise == F) {
       if (is.null(adj.name)) {
@@ -1056,7 +1056,7 @@ perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 
         } else {
           obj <- adonis2(as.formula(paste("dist.mat", formula)), df,  strata=strata, ...)
         }
-        prmatrix(obj$aov.tab)
+        #prmatrix(obj$aov.tab)
         permanova.obj[[dist.name]] <- obj$aov.tab
 
       }
@@ -1068,9 +1068,9 @@ perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 
           response[, , dist.name] <- dist.obj[[dist.name]][ind, ind]
         }
         obj <- PermanovaG2(as.formula(paste("response", formula)), df,  strata=strata, ...)
-        prmatrix(obj$aov.tab)
+        #prmatrix(obj$aov.tab)
         permanovaG.obj <- obj$aov.tab
-        cat("\n")
+        #cat("\n")
         result$permanovaG.obj <- permanovaG.obj
       }
 
@@ -1084,7 +1084,7 @@ perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 
       pmat.G <- matrix(NA, grp.nlevels, grp.nlevels)
       colnames(pmat.G) <- rownames(pmat.G) <- grp.levels
       for (dist.name in dist.names) {
-        cat(dist.name, " distance: \n")
+        #cat(dist.name, " distance: \n")
         pmat <- matrix(NA, grp.nlevels, grp.nlevels)
         colnames(pmat) <- rownames(pmat) <- grp.levels
         rmat <- matrix(NA, grp.nlevels, grp.nlevels)
@@ -1094,7 +1094,7 @@ perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 
           for (j in (i+1):grp.nlevels) {
 
             grp.level2 <- grp.levels[j]
-            cat(grp.level1, ' vs ', grp.level2, '\n')
+            #cat(grp.level1, ' vs ', grp.level2, '\n')
             ind <- grp %in% c(grp.level1, grp.level2)
             df2 <- subset(df, ind)
             df2[, grp.name] <- factor(df2[, grp.name])
@@ -1116,8 +1116,8 @@ perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 
             } else {
               obj <- adonis2(as.formula(paste("dist.mat2", formula)), df2,  strata=strata2,  ...)
             }
-            prmatrix(obj$aov.tab)
-            cat("\n")
+            #prmatrix(obj$aov.tab)
+            #cat("\n")
 
             if (block.perm == F) {
               pmat[i, j] <- pmat[j, i] <- obj$aov.tab[length(adj.name)+1, 6]
@@ -1130,13 +1130,13 @@ perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 
             # PERMANOVA G after last distance
             if (block.perm == F & !is.null(PermanovaG.dist)) {
               if (dist.name == dist.names[length(dist.names)]) {
-                cat('\nPERMANOVA G test combining ', paste(PermanovaG.dist, collapse=','), '\n')
+                #cat('\nPERMANOVA G test combining ', paste(PermanovaG.dist, collapse=','), '\n')
                 response <- array(NA, c(sum(ind2), sum(ind2), length(PermanovaG.dist)), dimnames=list(NULL, NULL, PermanovaG.dist))
                 for (dist.name in PermanovaG.dist) {
                   response[, , dist.name] <- dist.mat[ind2, ind2]
                 }
                 obj <- PermanovaG2(as.formula(paste("response", formula)), df2,  strata=strata2, ...)
-                prmatrix(obj$aov.tab)
+                #prmatrix(obj$aov.tab)
 
                 pmat.G[i, j] <- pmat.G[j, i] <- obj$aov.tab[length(adj.name)+1, 'omni.p.value']
               }
@@ -1194,9 +1194,9 @@ OLD.perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFr
     if (!is.null(strata)) {
       strata <- factor(strata[ind])
     }
-    sink(paste0("Beta_diversity_PERMANOVA_test_", ann, ".txt"))
-    date()
-    cat("\nPERMANOVA test: \n")
+    #sink(paste0("Beta_diversity_PERMANOVA_test_", ann, ".txt"))
+    #date()
+    #cat("\nPERMANOVA test: \n")
     permanova.obj <- list()
     for (dist.name in dist.names) {
       cat(dist.name, " distance: \n")
@@ -1208,9 +1208,9 @@ OLD.perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFr
         obj <- adonis2(as.formula(paste("dist.mat", formula)),
                        df, strata = strata, ...)
       }
-      prmatrix(obj$aov.tab)
+      #prmatrix(obj$aov.tab)
       permanova.obj[[dist.name]] <- obj$aov.tab
-      cat("\n")
+      #cat("\n")
     }
     result$permanova.obj <- permanova.obj
     permanovaG.obj <- NULL
@@ -1224,9 +1224,9 @@ OLD.perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFr
       }
       obj <- PermanovaG2(as.formula(paste("response", formula)),
                          df, strata = strata, ...)
-      prmatrix(obj$aov.tab)
+      #prmatrix(obj$aov.tab)
       permanovaG.obj <- obj$aov.tab
-      cat("\n")
+      #cat("\n")
       result$permanovaG.obj <- permanovaG.obj
     }
     cat("\n")
@@ -1260,9 +1260,9 @@ OLD.perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFr
           obj <- adonis2(as.formula(paste("dist.mat", formula)),
                          df, strata = strata, ...)
         }
-        prmatrix(obj$aov.tab)
+        #prmatrix(obj$aov.tab)
         permanova.obj[[dist.name]] <- obj$aov.tab
-        cat("\n")
+        #cat("\n")
       }
       result$permanova.obj <- permanova.obj
       permanovaG.obj <- NULL
@@ -1277,13 +1277,13 @@ OLD.perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFr
         }
         obj <- PermanovaG2(as.formula(paste("response", formula)),
                            df, strata = strata, ...)
-        prmatrix(obj$aov.tab)
+        #prmatrix(obj$aov.tab)
         permanovaG.obj <- obj$aov.tab
-        cat("\n")
+        #cat("\n")
         result$permanovaG.obj <- permanovaG.obj
       }
-      cat("\n")
-      sink()
+      #cat("\n")
+      #sink()
     } else {
       sink(paste0("Beta_diversity_PERMANOVA_test_", ann, "_pairwise.txt"))
       date()
@@ -1336,8 +1336,8 @@ OLD.perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFr
               obj <- adonis2(as.formula(paste("dist.mat2", formula)),
                              df2, strata = strata2, ...)
             }
-            prmatrix(obj$aov.tab)
-            cat("\n")
+            #prmatrix(obj$aov.tab)
+            #cat("\n")
             if (block.perm == F) {
               pmat[i, j] <- pmat[j, i] <- obj$aov.tab[length(adj.name) +
                                                         1, 6]
@@ -1361,8 +1361,8 @@ OLD.perform_permanova_test <- function(data.obj, dist.obj, dist.names = c("UniFr
                 }
                 obj <- PermanovaG2(as.formula(paste("response",
                                                     formula)), df2, strata = strata2, ...)
-                prmatrix(obj$aov.tab)
-                cat("\n")
+                #prmatrix(obj$aov.tab)
+                #cat("\n")
                 pmat.G[i, j] <- pmat.G[j, i] <- obj$aov.tab[length(adj.name) +
                                                               1, "omni.p.value"]
               }
