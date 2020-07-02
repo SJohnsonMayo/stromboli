@@ -1155,19 +1155,19 @@ perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 
     }
   }
   measures <- dist.names
-  tables <- list()
-  tables <- lapply(measures, function(x){
-    print(xtable::xtable(result$permanova.obj[[x]], caption=paste(x, "Permanova")),
-          type="html",
-          html.table.attributes='class="data table table-bordered table-condensed"',
-          caption.placement="top")
-  })
-  G_caption <- paste('PERMANOVA G test combining ', paste(measures, collapse=','))
-  tables[[as.character(length(measures)+1)]] <- print(xtable::xtable(result$permanovaG.obj, caption=G_caption),
-                                                      type="html",
-                                                      html.table.attributes='class="data table table-bordered table-condensed"',
-                                                      caption.placement="top")
-  all <- lapply(tables, paste0)
+  #tables <- list()
+  #tables <- lapply(measures, function(x){
+  #  print(xtable::xtable(result$permanova.obj[[x]], caption=paste(x, "Permanova")),
+  #        type="html",
+  #        html.table.attributes='class="data table table-bordered table-condensed"',
+  #        caption.placement="top")
+  #})
+  #G_caption <- paste('PERMANOVA G test combining ', paste(measures, collapse=','))
+  #tables[[as.character(length(measures)+1)]] <- print(xtable::xtable(result$permanovaG.obj, caption=G_caption),
+  #                                                    type="html",
+  #                                                    html.table.attributes='class="data table table-bordered table-condensed"',
+  #                                                    caption.placement="top")
+  #all <- lapply(tables, paste0)
   #return(htmltools::HTML(as.character(all)))
 
   return(result)
