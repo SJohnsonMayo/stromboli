@@ -1168,9 +1168,9 @@ perform_permanova_test <- function (data.obj, dist.obj, dist.names=c('UniFrac', 
                                                       html.table.attributes='class="data table table-bordered table-condensed"',
                                                       caption.placement="top")
   all <- lapply(tables, paste0)
-  return(htmltools::HTML(as.character(all)))
+  #return(htmltools::HTML(as.character(all)))
 
-  #return(result)
+  return(result)
 }
 
 
