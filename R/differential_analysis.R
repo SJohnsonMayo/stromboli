@@ -2706,7 +2706,7 @@ visualize_differential_analysis <- function (data.obj, diff.obj,  grp.name=NULL,
   if (length(taxa.names) == 0) {
     cat('No differential taxa! \n')
   } else {
-    if (length(taxa.names) >= 2) {
+    if (length(taxa.names) >= 1) {
 
       if (!is.null(grp.name)) {
         results$barplot_aggregate <- taxa_barplot_aggregate(prop, df, grp.name, strata, scale)
