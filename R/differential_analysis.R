@@ -2742,12 +2742,13 @@ visualize_differential_analysis <- function (data.obj, diff.obj,  grp.name=NULL,
       # create heatmp
       #			taxa.names2 <- taxa.names[!grepl('unclassified', taxa.names, ignore.case=T)]
       if (!is.null(grp.name)) {
-
-        results$prop_heatmap <- generate_taxa_heatmap(data.obj, taxa.levels='All', taxa=taxa.names, meta.info=c(grp.name, strata),  ann=NULL)
-        results$rank_heatmap <-generate_taxa_heatmap(data.obj, taxa.levels='All', taxa=taxa.names, meta.info=c(grp.name, strata), data.type='R', ann=NULL)
-        try(
-          results$biplot <- generate_taxa_biplot(data.obj, taxa=taxa.names, trans='sqrt', grp.name, ann=NULL, varname.size = 1.5)
-        )
+        if(length(taxa.names) >= 2){
+          results$prop_heatmap <- generate_taxa_heatmap(data.obj, taxa.levels='All', taxa=taxa.names, meta.info=c(grp.name, strata),  ann=NULL)
+          results$rank_heatmap <-generate_taxa_heatmap(data.obj, taxa.levels='All', taxa=taxa.names, meta.info=c(grp.name, strata), data.type='R', ann=NULL)
+          try(
+           results$biplot <- generate_taxa_biplot(data.obj, taxa=taxa.names, trans='sqrt', grp.name, ann=NULL, varname.size = 1.5)
+          )
+        }
       }
     }
     if (!is.null(grp.name)) {
